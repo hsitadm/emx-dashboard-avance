@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react'
-import { ChevronLeft, ChevronRight, Calendar, Plus, X, Save, User } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Calendar, Plus, X, Save, User, Edit, Trash2 } from 'lucide-react'
 import { useStore } from '../store/useStore'
 import apiService from '../services/api.js'
 
 const CalendarView = () => {
-  const { tasks, loadTasks, addTask } = useStore()
+  const { tasks, loadTasks, addTask, updateTask } = useStore()
   const [currentDate, setCurrentDate] = useState(new Date())
   const [view, setView] = useState<'month' | 'week'>('month')
   const [showEventModal, setShowEventModal] = useState(false)
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+  const [editingEvent, setEditingEvent] = useState<any>(null)
   const [users, setUsers] = useState<any[]>([])
   const [eventForm, setEventForm] = useState({
     title: '',
@@ -56,18 +57,15 @@ const CalendarView = () => {
 
     const days = []
     
-    // Días del mes anterior
     for (let i = startingDayOfWeek - 1; i >= 0; i--) {
       const prevDate = new Date(year, month, -i)
       days.push({ date: prevDate, isCurrentMonth: false })
     }
     
-    // Días del mes actual
     for (let day = 1; day <= daysInMonth; day++) {
       days.push({ date: new Date(year, month, day), isCurrentMonth: true })
     }
     
-    // Días del siguiente mes para completar la grilla
     const remainingDays = 42 - days.length
     for (let day = 1; day <= remainingDays; day++) {
       days.push({ date: new Date(year, month + 1, day), isCurrentMonth: false })
@@ -88,7 +86,7 @@ const CalendarView = () => {
 
   const getUpcomingEvents = () => {
     const today = new Date()
-    today.setHours(0, 0, 0, 0) // Reset time to start of day
+    today.setHours(0, 0, 0, 0)
     
     const allEvents = [
       ...tasks.map(task => ({
@@ -129,14 +127,41 @@ const CalendarView = () => {
   const handleDayClick = (date: Date) => {
     if (!date) return
     setSelectedDate(date)
+    setEditingEvent(null)
     setShowEventModal(true)
     setEventForm({
       title: '',
       description: '',
       priority: 'medium',
       region: 'TODAS',
-      assignee_id: users.length > 0 ? users[0].id.toString() : '8' // Default to first user or Usuario Demo
+      assignee_id: users.length > 0 ? users[0].id.toString() : '8'
     })
+  }
+
+  const handleEditEvent = (event: any, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setEditingEvent(event)
+    setSelectedDate(new Date(event.due_date))
+    setShowEventModal(true)
+    setEventForm({
+      title: event.title,
+      description: event.description || '',
+      priority: event.priority,
+      region: event.region || 'TODAS',
+      assignee_id: event.assignee_id?.toString() || '8'
+    })
+  }
+
+  const handleDeleteEvent = async (event: any, e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (confirm(`¿Estás seguro de eliminar "${event.title}"?`)) {
+      try {
+        await apiService.request(`/tasks/${event.id}`, { method: 'DELETE' })
+        await loadTasks() // Reload tasks
+      } catch (error) {
+        console.error('Error deleting event:', error)
+      }
+    }
   }
 
   const handleSaveEvent = async () => {
@@ -153,9 +178,15 @@ const CalendarView = () => {
       progress: 0
     }
 
-    await addTask(taskData)
+    if (editingEvent) {
+      await updateTask(editingEvent.id, taskData)
+    } else {
+      await addTask(taskData)
+    }
+    
     setShowEventModal(false)
     setSelectedDate(null)
+    setEditingEvent(null)
   }
 
   const monthNames = [
@@ -211,8 +242,8 @@ const CalendarView = () => {
 
       <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
         <p className="text-sm text-blue-800">
-          📅 <strong>Cómo usar:</strong> Haz clic en cualquier día para crear un nuevo evento/tarea con responsable asignado. 
-          Los puntos de colores indican prioridad: 🔴 Alta, 🟡 Media, 🟢 Baja.
+          📅 <strong>CRUD Completo:</strong> Haz clic en un día para crear eventos. 
+          Usa ✏️ para editar y 🗑️ para eliminar eventos existentes.
         </p>
       </div>
 
@@ -257,10 +288,28 @@ const CalendarView = () => {
                   {dayTasks.map(task => (
                     <div
                       key={task.id}
-                      className="text-xs p-1 bg-gray-100 rounded flex items-center gap-1"
+                      className="text-xs p-1 bg-gray-100 rounded flex items-center justify-between group hover:bg-gray-200"
                     >
-                      <div className={`w-2 h-2 rounded-full ${priorityColors[task.priority]}`}></div>
-                      <span className="truncate">{task.title}</span>
+                      <div className="flex items-center gap-1 flex-1 min-w-0">
+                        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${priorityColors[task.priority]}`}></div>
+                        <span className="truncate">{task.title}</span>
+                      </div>
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={(e) => handleEditEvent(task, e)}
+                          className="p-0.5 hover:bg-blue-200 rounded"
+                          title="Editar evento"
+                        >
+                          <Edit size={10} className="text-blue-600" />
+                        </button>
+                        <button
+                          onClick={(e) => handleDeleteEvent(task, e)}
+                          className="p-0.5 hover:bg-red-200 rounded"
+                          title="Eliminar evento"
+                        >
+                          <Trash2 size={10} className="text-red-600" />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -270,13 +319,13 @@ const CalendarView = () => {
         </div>
       )}
 
-      {/* Modal para crear evento */}
+      {/* Modal para crear/editar evento */}
       {showEventModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">
-                Nuevo Evento - {selectedDate?.toLocaleDateString()}
+                {editingEvent ? 'Editar Evento' : 'Nuevo Evento'} - {selectedDate?.toLocaleDateString()}
               </h3>
               <button onClick={() => setShowEventModal(false)} className="text-gray-400 hover:text-gray-600">
                 <X size={20} />
@@ -376,7 +425,7 @@ const CalendarView = () => {
                   className="flex-1 btn-primary flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   <Save size={16} />
-                  Crear Evento
+                  {editingEvent ? 'Actualizar' : 'Crear'} Evento
                 </button>
               </div>
             </div>
