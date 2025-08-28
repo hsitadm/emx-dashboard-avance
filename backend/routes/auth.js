@@ -1,5 +1,5 @@
 import express from 'express'
-import pool from '../config/database.js'
+import db from '../config/database.js'
 
 const router = express.Router()
 
@@ -8,7 +8,7 @@ router.post('/login', async (req, res) => {
   try {
     const { email } = req.body
 
-    const result = await pool.query('SELECT * FROM users WHERE email = $1', [email])
+    const result = await db.query('SELECT * FROM users WHERE email = ?', [email])
     
     if (result.rows.length === 0) {
       return res.status(401).json({ error: 'User not found' })
@@ -16,7 +16,6 @@ router.post('/login', async (req, res) => {
 
     const user = result.rows[0]
     
-    // En desarrollo, no validamos password
     res.json({
       user: {
         id: user.id,
@@ -36,8 +35,7 @@ router.post('/login', async (req, res) => {
 // GET /api/auth/me - Obtener usuario actual
 router.get('/me', async (req, res) => {
   try {
-    // Para desarrollo, devolver usuario demo
-    const result = await pool.query('SELECT * FROM users WHERE email = $1', ['demo@emx.com'])
+    const result = await db.query('SELECT * FROM users WHERE email = ?', ['demo@emx.com'])
     
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'User not found' })

@@ -1,25 +1,44 @@
-import pg from 'pg'
-import dotenv from 'dotenv'
+import sqlite3 from 'sqlite3'
+import { fileURLToPath } from 'url'
+import { dirname, join } from 'path'
 
-dotenv.config()
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
 
-const { Pool } = pg
+const dbPath = join(__dirname, '..', 'database.sqlite')
 
-const pool = new Pool({
-  user: process.env.DB_USER || 'postgres',
-  host: process.env.DB_HOST || 'localhost',
-  database: process.env.DB_NAME || 'emx_dashboard',
-  password: process.env.DB_PASSWORD || 'password',
-  port: process.env.DB_PORT || 5432,
+const db = new sqlite3.Database(dbPath, (err) => {
+  if (err) {
+    console.error('❌ Error opening database:', err.message)
+  } else {
+    console.log('✅ Connected to SQLite database')
+  }
 })
 
-// Test connection
-pool.on('connect', () => {
-  console.log('✅ Connected to PostgreSQL database')
-})
+// Promisify database methods
+const query = (sql, params = []) => {
+  return new Promise((resolve, reject) => {
+    db.all(sql, params, (err, rows) => {
+      if (err) {
+        reject(err)
+      } else {
+        resolve({ rows })
+      }
+    })
+  })
+}
 
-pool.on('error', (err) => {
-  console.error('❌ Database connection error:', err)
-})
+const run = (sql, params = []) => {
+  return new Promise((resolve, reject) => {
+    db.run(sql, params, function(err) {
+      if (err) {
+        reject(err)
+      } else {
+        resolve({ lastID: this.lastID, changes: this.changes })
+      }
+    })
+  })
+}
 
-export default pool
+export { db, query, run }
+export default { query, run }

@@ -1,5 +1,5 @@
 import express from 'express'
-import pool from '../config/database.js'
+import db from '../config/database.js'
 
 const router = express.Router()
 
@@ -15,35 +15,30 @@ router.get('/', async (req, res) => {
       WHERE 1=1
     `
     const params = []
-    let paramCount = 0
 
     if (region && region !== 'TODAS') {
-      paramCount++
-      query += ` AND (t.region = $${paramCount} OR t.region = 'TODAS')`
+      query += ` AND (t.region = ? OR t.region = 'TODAS')`
       params.push(region)
     }
 
     if (status) {
-      paramCount++
-      query += ` AND t.status = $${paramCount}`
+      query += ` AND t.status = ?`
       params.push(status)
     }
 
     if (assignee) {
-      paramCount++
-      query += ` AND t.assignee_id = $${paramCount}`
+      query += ` AND t.assignee_id = ?`
       params.push(assignee)
     }
 
     if (priority) {
-      paramCount++
-      query += ` AND t.priority = $${paramCount}`
+      query += ` AND t.priority = ?`
       params.push(priority)
     }
 
     query += ' ORDER BY t.created_at DESC'
 
-    const result = await pool.query(query, params)
+    const result = await db.query(query, params)
     res.json(result.rows)
   } catch (error) {
     console.error('Error fetching tasks:', error)
@@ -56,14 +51,15 @@ router.post('/', async (req, res) => {
   try {
     const { title, description, status, assignee_id, due_date, priority, region } = req.body
 
-    const result = await pool.query(
+    const result = await db.run(
       `INSERT INTO tasks (title, description, status, assignee_id, due_date, priority, region) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7) 
-       RETURNING *`,
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [title, description, status || 'planning', assignee_id, due_date, priority || 'medium', region]
     )
 
-    res.status(201).json(result.rows[0])
+    // Get the created task
+    const task = await db.query('SELECT * FROM tasks WHERE id = ?', [result.lastID])
+    res.status(201).json(task.rows[0])
   } catch (error) {
     console.error('Error creating task:', error)
     res.status(500).json({ error: 'Failed to create task' })
@@ -76,15 +72,16 @@ router.put('/:id', async (req, res) => {
     const { id } = req.params
     const { title, description, status, assignee_id, due_date, priority, region, progress } = req.body
 
-    const result = await pool.query(
+    await db.run(
       `UPDATE tasks 
-       SET title = $1, description = $2, status = $3, assignee_id = $4, 
-           due_date = $5, priority = $6, region = $7, progress = $8, updated_at = NOW()
-       WHERE id = $9 
-       RETURNING *`,
+       SET title = ?, description = ?, status = ?, assignee_id = ?, 
+           due_date = ?, priority = ?, region = ?, progress = ?
+       WHERE id = ?`,
       [title, description, status, assignee_id, due_date, priority, region, progress, id]
     )
 
+    const result = await db.query('SELECT * FROM tasks WHERE id = ?', [id])
+    
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Task not found' })
     }
@@ -96,34 +93,16 @@ router.put('/:id', async (req, res) => {
   }
 })
 
-// DELETE /api/tasks/:id - Eliminar tarea
-router.delete('/:id', async (req, res) => {
-  try {
-    const { id } = req.params
-
-    const result = await pool.query('DELETE FROM tasks WHERE id = $1 RETURNING *', [id])
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Task not found' })
-    }
-
-    res.json({ message: 'Task deleted successfully' })
-  } catch (error) {
-    console.error('Error deleting task:', error)
-    res.status(500).json({ error: 'Failed to delete task' })
-  }
-})
-
-// GET /api/tasks/:id/comments - Obtener comentarios de una tarea
+// GET /api/tasks/:id/comments - Obtener comentarios
 router.get('/:id/comments', async (req, res) => {
   try {
     const { id } = req.params
 
-    const result = await pool.query(
+    const result = await db.query(
       `SELECT c.*, u.name as author_name 
        FROM comments c 
        LEFT JOIN users u ON c.author_id = u.id 
-       WHERE c.task_id = $1 
+       WHERE c.task_id = ? 
        ORDER BY c.created_at ASC`,
       [id]
     )
@@ -141,14 +120,14 @@ router.post('/:id/comments', async (req, res) => {
     const { id } = req.params
     const { content, author_id } = req.body
 
-    const result = await pool.query(
+    const result = await db.run(
       `INSERT INTO comments (task_id, content, author_id) 
-       VALUES ($1, $2, $3) 
-       RETURNING *`,
-      [id, content, author_id]
+       VALUES (?, ?, ?)`,
+      [id, content, author_id || 8] // Default to Usuario Demo
     )
 
-    res.status(201).json(result.rows[0])
+    const comment = await db.query('SELECT * FROM comments WHERE id = ?', [result.lastID])
+    res.status(201).json(comment.rows[0])
   } catch (error) {
     console.error('Error creating comment:', error)
     res.status(500).json({ error: 'Failed to create comment' })
