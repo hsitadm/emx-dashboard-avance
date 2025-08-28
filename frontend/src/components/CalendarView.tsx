@@ -73,6 +73,34 @@ const CalendarView = () => {
     return milestones.filter(milestone => milestone.date === dateStr)
   }
 
+  const getUpcomingEvents = () => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0) // Reset time to start of day
+    
+    const allEvents = [
+      ...tasks.map(task => ({
+        ...task,
+        dueDate: task.due_date,
+        assignee_name: task.assignee_name || 'Sin asignar'
+      })),
+      ...milestones.map(m => ({
+        ...m,
+        dueDate: m.date,
+        assignee_name: 'Sistema',
+        due_date: m.date
+      }))
+    ]
+
+    return allEvents
+      .filter(item => {
+        const eventDate = new Date(item.due_date || item.dueDate)
+        eventDate.setHours(0, 0, 0, 0)
+        return eventDate >= today
+      })
+      .sort((a, b) => new Date(a.due_date || a.dueDate).getTime() - new Date(b.due_date || b.dueDate).getTime())
+      .slice(0, 5)
+  }
+
   const navigateMonth = (direction: 'prev' | 'next') => {
     setCurrentDate(prev => {
       const newDate = new Date(prev)
@@ -327,22 +355,24 @@ const CalendarView = () => {
       <div className="mt-6 pt-6 border-t border-gray-200">
         <h3 className="font-medium text-gray-900 mb-4">Próximos Eventos</h3>
         <div className="space-y-2">
-          {[...tasks, ...milestones.map(m => ({...m, dueDate: m.date, assignee_name: 'Sistema', due_date: m.date}))]
-            .sort((a, b) => new Date(a.due_date || a.dueDate).getTime() - new Date(b.due_date || b.dueDate).getTime())
-            .slice(0, 5)
-            .map((item, index) => (
-              <div key={index} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded">
-                <Calendar size={16} className="text-gray-400" />
-                <div className="flex-1">
-                  <div className="font-medium text-sm">{item.title}</div>
-                  <div className="text-xs text-gray-500 flex items-center gap-2">
-                    <span>{new Date(item.due_date || item.dueDate).toLocaleDateString()}</span>
-                    <span>•</span>
-                    <span>{item.assignee_name}</span>
-                  </div>
+          {getUpcomingEvents().map((item, index) => (
+            <div key={index} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded">
+              <Calendar size={16} className="text-gray-400" />
+              <div className="flex-1">
+                <div className="font-medium text-sm">{item.title}</div>
+                <div className="text-xs text-gray-500 flex items-center gap-2">
+                  <span>{new Date(item.due_date || item.dueDate).toLocaleDateString()}</span>
+                  <span>•</span>
+                  <span>{item.assignee_name}</span>
                 </div>
               </div>
-            ))}
+            </div>
+          ))}
+          {getUpcomingEvents().length === 0 && (
+            <div className="text-center py-4 text-gray-500 text-sm">
+              No hay eventos próximos programados
+            </div>
+          )}
         </div>
       </div>
     </div>
