@@ -1,44 +1,23 @@
-import { useState } from 'react'
-import { ChevronLeft, ChevronRight, Calendar, Clock, User } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { ChevronLeft, ChevronRight, Calendar, Plus, X, Save } from 'lucide-react'
+import { useStore } from '../store/useStore'
 
 const CalendarView = () => {
+  const { tasks, loadTasks, addTask } = useStore()
   const [currentDate, setCurrentDate] = useState(new Date())
   const [view, setView] = useState<'month' | 'week'>('month')
+  const [showEventModal, setShowEventModal] = useState(false)
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+  const [eventForm, setEventForm] = useState({
+    title: '',
+    description: '',
+    priority: 'medium',
+    region: 'TODAS'
+  })
 
-  const tasks = [
-    {
-      id: '1',
-      title: 'Migración Clientes Corporativos',
-      dueDate: '2025-02-15',
-      assignee: 'María González',
-      priority: 'high',
-      region: 'CECA'
-    },
-    {
-      id: '2',
-      title: 'Configuración Equipos Regionales',
-      dueDate: '2025-01-30',
-      assignee: 'Carlos Ruiz',
-      priority: 'medium',
-      region: 'SOLA'
-    },
-    {
-      id: '3',
-      title: 'Definición Procesos EMx',
-      dueDate: '2025-03-01',
-      assignee: 'Ana López',
-      priority: 'high',
-      region: 'MX'
-    },
-    {
-      id: '4',
-      title: 'Capacitación Champions',
-      dueDate: '2025-02-20',
-      assignee: 'Pedro Martín',
-      priority: 'medium',
-      region: 'SNAP'
-    }
-  ]
+  useEffect(() => {
+    loadTasks()
+  }, [loadTasks])
 
   const milestones = [
     { id: '1', title: 'Kick-off del Proyecto', date: '2025-01-15', completed: true },
@@ -86,7 +65,7 @@ const CalendarView = () => {
 
   const getTasksForDate = (date: Date) => {
     const dateStr = date.toISOString().split('T')[0]
-    return tasks.filter(task => task.dueDate === dateStr)
+    return tasks.filter(task => task.due_date === dateStr)
   }
 
   const getMilestonesForDate = (date: Date) => {
@@ -106,6 +85,37 @@ const CalendarView = () => {
     })
   }
 
+  const handleDayClick = (date: Date) => {
+    if (!date) return
+    setSelectedDate(date)
+    setShowEventModal(true)
+    setEventForm({
+      title: '',
+      description: '',
+      priority: 'medium',
+      region: 'TODAS'
+    })
+  }
+
+  const handleSaveEvent = async () => {
+    if (!selectedDate || !eventForm.title.trim()) return
+
+    const taskData = {
+      title: eventForm.title,
+      description: eventForm.description,
+      status: 'planning' as const,
+      assignee_id: 8, // Usuario Demo
+      due_date: selectedDate.toISOString().split('T')[0],
+      priority: eventForm.priority as 'low' | 'medium' | 'high',
+      region: eventForm.region,
+      progress: 0
+    }
+
+    await addTask(taskData)
+    setShowEventModal(false)
+    setSelectedDate(null)
+  }
+
   const monthNames = [
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
     'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
@@ -117,7 +127,7 @@ const CalendarView = () => {
     <div className="card">
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-4">
-          <h2 className="text-xl font-semibold text-gray-900">Calendario del Proyecto</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Calendario del Proyecto EMx</h2>
           <div className="flex bg-gray-100 rounded-lg p-1">
             <button
               onClick={() => setView('month')}
@@ -157,6 +167,13 @@ const CalendarView = () => {
         </div>
       </div>
 
+      <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+        <p className="text-sm text-blue-800">
+          📅 <strong>Cómo usar:</strong> Haz clic en cualquier día para crear un nuevo evento/tarea. 
+          Los puntos de colores indican prioridad: 🔴 Alta, 🟡 Media, 🟢 Baja.
+        </p>
+      </div>
+
       {view === 'month' && (
         <div className="grid grid-cols-7 gap-1">
           {dayNames.map(day => (
@@ -172,7 +189,8 @@ const CalendarView = () => {
             return (
               <div
                 key={index}
-                className={`min-h-[100px] p-2 border border-gray-100 ${
+                onClick={() => day.isCurrentMonth && handleDayClick(day.date)}
+                className={`min-h-[100px] p-2 border border-gray-100 cursor-pointer hover:bg-gray-50 ${
                   day.isCurrentMonth ? 'bg-white' : 'bg-gray-50'
                 }`}
               >
@@ -199,7 +217,7 @@ const CalendarView = () => {
                       key={task.id}
                       className="text-xs p-1 bg-gray-100 rounded flex items-center gap-1"
                     >
-                      <div className={`w-2 h-2 rounded-full ${priorityColors[task.priority as keyof typeof priorityColors]}`}></div>
+                      <div className={`w-2 h-2 rounded-full ${priorityColors[task.priority]}`}></div>
                       <span className="truncate">{task.title}</span>
                     </div>
                   ))}
@@ -210,10 +228,98 @@ const CalendarView = () => {
         </div>
       )}
 
-      {view === 'week' && (
-        <div className="space-y-4">
-          <div className="text-center text-gray-600">
-            Vista semanal - Próximamente
+      {/* Modal para crear evento */}
+      {showEventModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">
+                Nuevo Evento - {selectedDate?.toLocaleDateString()}
+              </h3>
+              <button onClick={() => setShowEventModal(false)} className="text-gray-400 hover:text-gray-600">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Título del Evento
+                </label>
+                <input
+                  type="text"
+                  value={eventForm.title}
+                  onChange={(e) => setEventForm({...eventForm, title: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  placeholder="Ej: Reunión de seguimiento EMx"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Descripción
+                </label>
+                <textarea
+                  value={eventForm.description}
+                  onChange={(e) => setEventForm({...eventForm, description: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  rows={3}
+                  placeholder="Descripción del evento..."
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Prioridad
+                  </label>
+                  <select
+                    value={eventForm.priority}
+                    onChange={(e) => setEventForm({...eventForm, priority: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="low">Baja</option>
+                    <option value="medium">Media</option>
+                    <option value="high">Alta</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Región
+                  </label>
+                  <select
+                    value={eventForm.region}
+                    onChange={(e) => setEventForm({...eventForm, region: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="TODAS">🌍 TODAS</option>
+                    <option value="CECA">CECA</option>
+                    <option value="SOLA">SOLA</option>
+                    <option value="MX">MX</option>
+                    <option value="SNAP">SNAP</option>
+                    <option value="COEC">COEC</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={() => setShowEventModal(false)}
+                  className="flex-1 btn-secondary"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleSaveEvent}
+                  disabled={!eventForm.title.trim()}
+                  className="flex-1 btn-primary flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  <Save size={16} />
+                  Crear Evento
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -221,8 +327,8 @@ const CalendarView = () => {
       <div className="mt-6 pt-6 border-t border-gray-200">
         <h3 className="font-medium text-gray-900 mb-4">Próximos Eventos</h3>
         <div className="space-y-2">
-          {[...tasks, ...milestones.map(m => ({...m, dueDate: m.date, assignee: 'Sistema'}))]
-            .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+          {[...tasks, ...milestones.map(m => ({...m, dueDate: m.date, assignee_name: 'Sistema', due_date: m.date}))]
+            .sort((a, b) => new Date(a.due_date || a.dueDate).getTime() - new Date(b.due_date || b.dueDate).getTime())
             .slice(0, 5)
             .map((item, index) => (
               <div key={index} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded">
@@ -230,9 +336,9 @@ const CalendarView = () => {
                 <div className="flex-1">
                   <div className="font-medium text-sm">{item.title}</div>
                   <div className="text-xs text-gray-500 flex items-center gap-2">
-                    <span>{new Date(item.dueDate).toLocaleDateString()}</span>
+                    <span>{new Date(item.due_date || item.dueDate).toLocaleDateString()}</span>
                     <span>•</span>
-                    <span>{item.assignee}</span>
+                    <span>{item.assignee_name}</span>
                   </div>
                 </div>
               </div>
