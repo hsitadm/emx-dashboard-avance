@@ -9,6 +9,7 @@ import authRoutes from './routes/auth.js'
 import taskRoutes from './routes/tasks.js'
 import userRoutes from './routes/users.js'
 import dashboardRoutes from './routes/dashboard.js'
+import milestoneRoutes from './routes/milestones.js'
 
 dotenv.config()
 
@@ -38,6 +39,7 @@ app.use('/api/auth', authRoutes)
 app.use('/api/tasks', taskRoutes)
 app.use('/api/users', userRoutes)
 app.use('/api/dashboard', dashboardRoutes)
+app.use('/api/milestones', milestoneRoutes)
 
 // Health check
 app.get('/api/health', (req, res) => {

@@ -60,6 +60,31 @@ class ApiService {
     })
   }
 
+  // Milestones
+  async getMilestones() {
+    return this.request('/milestones')
+  }
+
+  async createMilestone(milestoneData) {
+    return this.request('/milestones', {
+      method: 'POST',
+      body: JSON.stringify(milestoneData),
+    })
+  }
+
+  async updateMilestone(id, milestoneData) {
+    return this.request(`/milestones/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(milestoneData),
+    })
+  }
+
+  async deleteMilestone(id) {
+    return this.request(`/milestones/${id}`, {
+      method: 'DELETE',
+    })
+  }
+
   // Users
   async getUsers() {
     return this.request('/users')
