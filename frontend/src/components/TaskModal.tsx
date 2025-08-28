@@ -1,6 +1,16 @@
 import { useState } from 'react'
 import { X, Save } from 'lucide-react'
-import { Task } from '../store/useStore'
+
+interface Task {
+  id: string
+  title: string
+  description: string
+  status: 'planning' | 'in-progress' | 'completed' | 'review'
+  assignee: string
+  dueDate: string
+  priority: 'low' | 'medium' | 'high'
+  region?: string
+}
 
 interface TaskModalProps {
   task?: Task
