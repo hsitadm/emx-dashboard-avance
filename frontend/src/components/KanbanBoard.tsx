@@ -3,10 +3,22 @@ import { Plus, MessageCircle, User, Calendar, ArrowRight, ArrowLeft } from 'luci
 import { useStore } from '../store/useStore'
 import TaskComments from './TaskComments'
 
+interface LocalTask {
+  id: string
+  title: string
+  description: string
+  status: 'planning' | 'in-progress' | 'review' | 'completed'
+  assignee: string
+  dueDate: string
+  priority: 'low' | 'medium' | 'high'
+  region: string
+  comments: number
+}
+
 const KanbanBoard = () => {
   const { tasks, updateTask } = useStore()
   const [commentsOpen, setCommentsOpen] = useState<string | null>(null)
-  const [localTasks, setLocalTasks] = useState([
+  const [localTasks, setLocalTasks] = useState<LocalTask[]>([
     {
       id: '1',
       title: 'Migración Clientes Corporativos',
@@ -53,13 +65,11 @@ const KanbanBoard = () => {
     }
   ])
 
-  const allTasks = tasks.length > 0 ? tasks : localTasks
-
   const columns = [
-    { id: 'planning', title: 'Planificación', color: 'bg-gray-100' },
-    { id: 'in-progress', title: 'En Progreso', color: 'bg-blue-100' },
-    { id: 'review', title: 'En Revisión', color: 'bg-yellow-100' },
-    { id: 'completed', title: 'Completado', color: 'bg-green-100' }
+    { id: 'planning' as const, title: 'Planificación', color: 'bg-gray-100' },
+    { id: 'in-progress' as const, title: 'En Progreso', color: 'bg-blue-100' },
+    { id: 'review' as const, title: 'En Revisión', color: 'bg-yellow-100' },
+    { id: 'completed' as const, title: 'Completado', color: 'bg-green-100' }
   ]
 
   const priorityColors = {
@@ -68,24 +78,20 @@ const KanbanBoard = () => {
     high: 'border-l-red-500'
   }
 
-  const moveTask = (taskId: string, newStatus: string) => {
-    const task = allTasks.find(t => t.id === taskId)
+  const moveTask = (taskId: string, newStatus: 'planning' | 'in-progress' | 'review' | 'completed') => {
+    const task = localTasks.find(t => t.id === taskId)
     if (!task || task.status === newStatus) return
 
-    if (tasks.length > 0) {
-      updateTask(taskId, { ...task, status: newStatus })
-    } else {
-      setLocalTasks(prev => 
-        prev.map(t => t.id === taskId ? { ...t, status: newStatus } : t)
-      )
-    }
+    setLocalTasks(prev => 
+      prev.map(t => t.id === taskId ? { ...t, status: newStatus } : t)
+    )
 
     const columnName = columns.find(c => c.id === newStatus)?.title
-    alert(`✅ Tarea "${task.title}" movida a "${columnName}"`)
+    console.log(`Tarea "${task.title}" movida a "${columnName}"`)
   }
 
   const getTasksByStatus = (status: string) => {
-    return allTasks.filter(task => task.status === status)
+    return localTasks.filter(task => task.status === status)
   }
 
   const getNextStatus = (currentStatus: string) => {
@@ -111,7 +117,7 @@ const KanbanBoard = () => {
       <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
         <p className="text-sm text-green-800">
           ✨ <strong>Cómo usar:</strong> Usa las flechas ← → en cada tarjeta para mover entre estados. 
-          Haz clic en 💬 para ver comentarios.
+          Haz clic en el número junto a 💬 para ver comentarios.
         </p>
       </div>
 
@@ -132,12 +138,12 @@ const KanbanBoard = () => {
               {getTasksByStatus(column.id).map((task) => (
                 <div
                   key={task.id}
-                  className={`bg-white rounded-lg p-4 shadow-sm border-l-4 ${priorityColors[task.priority as keyof typeof priorityColors]} hover:shadow-md transition-shadow`}
+                  className={`bg-white rounded-lg p-4 shadow-sm border-l-4 ${priorityColors[task.priority]} hover:shadow-md transition-shadow`}
                 >
                   <h4 className="font-medium text-gray-900 mb-2 text-sm">
                     {task.title}
                   </h4>
-                  <p className="text-xs text-gray-600 mb-3 line-clamp-2">
+                  <p className="text-xs text-gray-600 mb-3">
                     {task.description}
                   </p>
 
@@ -158,10 +164,10 @@ const KanbanBoard = () => {
                     </span>
                     <button
                       onClick={() => setCommentsOpen(task.id)}
-                      className="flex items-center gap-1 text-xs text-gray-500 hover:text-blue-600 transition-colors"
+                      className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium"
                     >
                       <MessageCircle size={12} />
-                      {task.comments || 0}
+                      <span>{task.comments}</span>
                     </button>
                   </div>
 
@@ -185,7 +191,7 @@ const KanbanBoard = () => {
                         if (nextStatus) moveTask(task.id, nextStatus)
                       }}
                       disabled={!getNextStatus(task.status)}
-                      className="flex items-center gap-1 px-2 py-1 text-xs bg-primary-100 hover:bg-primary-200 text-primary-700 rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      className="flex items-center gap-1 px-2 py-1 text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                       Siguiente
                       <ArrowRight size={12} />
