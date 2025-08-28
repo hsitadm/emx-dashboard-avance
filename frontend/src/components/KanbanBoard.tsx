@@ -1,71 +1,17 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Plus, MessageCircle, User, Calendar, ArrowRight, ArrowLeft } from 'lucide-react'
 import { useStore } from '../store/useStore'
 import TaskComments from './TaskComments'
 import TaskModal from './TaskModal'
 
-interface LocalTask {
-  id: string
-  title: string
-  description: string
-  status: 'planning' | 'in-progress' | 'review' | 'completed'
-  assignee: string
-  dueDate: string
-  priority: 'low' | 'medium' | 'high'
-  region: string
-  comments: number
-}
-
 const KanbanBoard = () => {
-  const { tasks, updateTask, addTask } = useStore()
+  const { tasks, loadTasks, updateTask, addTask } = useStore()
   const [commentsOpen, setCommentsOpen] = useState<string | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [localTasks, setLocalTasks] = useState<LocalTask[]>([
-    {
-      id: '1',
-      title: 'Migración Clientes Corporativos',
-      description: 'Migrar 50 clientes corporativos al nuevo sistema EMx',
-      status: 'in-progress',
-      assignee: 'María González',
-      dueDate: '2025-02-15',
-      priority: 'high',
-      region: 'CECA',
-      comments: 3
-    },
-    {
-      id: '2',
-      title: 'Configuración Equipos Regionales',
-      description: 'Establecer equipos de trabajo por región',
-      status: 'completed',
-      assignee: 'Carlos Ruiz',
-      dueDate: '2025-01-30',
-      priority: 'medium',
-      region: 'SOLA',
-      comments: 1
-    },
-    {
-      id: '3',
-      title: 'Definición Procesos EMx',
-      description: 'Documentar nuevos procesos operativos',
-      status: 'planning',
-      assignee: 'Ana López',
-      dueDate: '2025-03-01',
-      priority: 'high',
-      region: 'MX',
-      comments: 0
-    },
-    {
-      id: '4',
-      title: 'Capacitación Champions',
-      description: 'Entrenar a EMx Champions en nuevas herramientas',
-      status: 'review',
-      assignee: 'Pedro Martín',
-      dueDate: '2025-02-20',
-      priority: 'medium',
-      region: 'SNAP',
-      comments: 2
-    }
-  ])
+
+  useEffect(() => {
+    loadTasks()
+  }, [loadTasks])
 
   const columns = [
     { id: 'planning' as const, title: 'Planificación', color: 'bg-gray-100' },
@@ -80,37 +26,32 @@ const KanbanBoard = () => {
     high: 'border-l-red-500'
   }
 
-  const moveTask = (taskId: string, newStatus: 'planning' | 'in-progress' | 'review' | 'completed') => {
-    const task = localTasks.find(t => t.id === taskId)
+  const moveTask = async (taskId: string, newStatus: 'planning' | 'in-progress' | 'review' | 'completed') => {
+    const task = tasks.find(t => t.id === taskId)
     if (!task || task.status === newStatus) return
 
-    setLocalTasks(prev => 
-      prev.map(t => t.id === taskId ? { ...t, status: newStatus } : t)
-    )
-
+    await updateTask(taskId, { ...task, status: newStatus })
+    
     const columnName = columns.find(c => c.id === newStatus)?.title
     console.log(`Tarea "${task.title}" movida a "${columnName}"`)
   }
 
-  const handleSaveTask = (taskData: any) => {
-    const newTask: LocalTask = {
-      id: Date.now().toString(),
+  const handleSaveTask = async (taskData: any) => {
+    await addTask({
       title: taskData.title,
       description: taskData.description,
       status: taskData.status || 'planning',
-      assignee: taskData.assignee,
-      dueDate: taskData.dueDate,
+      assignee_id: taskData.assignee_id,
+      due_date: taskData.dueDate,
       priority: taskData.priority,
       region: taskData.region,
-      comments: 0
-    }
-
-    setLocalTasks(prev => [...prev, newTask])
-    console.log('Nueva tarea creada:', newTask.title)
+      progress: 0
+    })
+    setIsModalOpen(false)
   }
 
   const getTasksByStatus = (status: string) => {
-    return localTasks.filter(task => task.status === status)
+    return tasks.filter(task => task.status === status)
   }
 
   const getNextStatus = (currentStatus: string) => {
@@ -126,7 +67,7 @@ const KanbanBoard = () => {
   return (
     <div className="card">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold text-gray-900">Tablero Kanban</h2>
+        <h2 className="text-xl font-semibold text-gray-900">Tablero Kanban EMx</h2>
         <button 
           onClick={() => setIsModalOpen(true)}
           className="btn-primary flex items-center gap-2"
@@ -138,8 +79,8 @@ const KanbanBoard = () => {
 
       <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
         <p className="text-sm text-green-800">
-          ✨ <strong>Cómo usar:</strong> Usa las flechas ← → en cada tarjeta para mover entre estados. 
-          Haz clic en el número junto a 💬 para ver comentarios. Haz clic en "Nueva Tarea" para agregar.
+          ✨ <strong>Datos Reales EMx:</strong> Usa las flechas ← → para mover tareas entre estados. 
+          Haz clic en 💬 para comentarios. Total: {tasks.length} tareas del proyecto.
         </p>
       </div>
 
@@ -165,18 +106,34 @@ const KanbanBoard = () => {
                   <h4 className="font-medium text-gray-900 mb-2 text-sm">
                     {task.title}
                   </h4>
-                  <p className="text-xs text-gray-600 mb-3">
+                  <p className="text-xs text-gray-600 mb-3 line-clamp-2">
                     {task.description}
                   </p>
+
+                  {/* Progress bar */}
+                  {task.progress !== undefined && (
+                    <div className="mb-3">
+                      <div className="flex justify-between text-xs text-gray-500 mb-1">
+                        <span>Progreso</span>
+                        <span>{task.progress}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-1.5">
+                        <div 
+                          className="bg-primary-600 h-1.5 rounded-full transition-all duration-300"
+                          style={{ width: `${task.progress}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
                     <div className="flex items-center gap-1">
                       <User size={12} />
-                      <span>{task.assignee}</span>
+                      <span>{task.assignee_name || 'Sin asignar'}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <Calendar size={12} />
-                      <span>{new Date(task.dueDate).toLocaleDateString()}</span>
+                      <span>{new Date(task.due_date).toLocaleDateString()}</span>
                     </div>
                   </div>
 
@@ -189,7 +146,7 @@ const KanbanBoard = () => {
                       className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium"
                     >
                       <MessageCircle size={12} />
-                      <span>{task.comments}</span>
+                      <span>0</span>
                     </button>
                   </div>
 
@@ -221,6 +178,12 @@ const KanbanBoard = () => {
                   </div>
                 </div>
               ))}
+
+              {getTasksByStatus(column.id).length === 0 && (
+                <div className="text-center py-8 text-gray-500 text-sm">
+                  No hay tareas en {column.title.toLowerCase()}
+                </div>
+              )}
             </div>
           </div>
         ))}
