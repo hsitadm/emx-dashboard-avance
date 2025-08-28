@@ -6,6 +6,7 @@ import TaskComments from './TaskComments'
 const KanbanBoard = () => {
   const { tasks, updateTask } = useStore()
   const [draggedTask, setDraggedTask] = useState<any>(null)
+  const [dragOverColumn, setDragOverColumn] = useState<string | null>(null)
   const [commentsOpen, setCommentsOpen] = useState<string | null>(null)
 
   // Datos de ejemplo si no hay tareas
@@ -72,8 +73,22 @@ const KanbanBoard = () => {
   }
 
   const handleDragStart = (e: React.DragEvent, task: any) => {
+    console.log('Drag started:', task.title)
     setDraggedTask(task)
     e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', task.id)
+    
+    // Añadir clase visual al elemento arrastrado
+    const target = e.target as HTMLElement
+    target.style.opacity = '0.5'
+  }
+
+  const handleDragEnd = (e: React.DragEvent) => {
+    console.log('Drag ended')
+    const target = e.target as HTMLElement
+    target.style.opacity = '1'
+    setDraggedTask(null)
+    setDragOverColumn(null)
   }
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -81,12 +96,46 @@ const KanbanBoard = () => {
     e.dataTransfer.dropEffect = 'move'
   }
 
+  const handleDragEnter = (e: React.DragEvent, columnId: string) => {
+    e.preventDefault()
+    setDragOverColumn(columnId)
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    // Solo quitar el highlight si realmente salimos del área
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+    const x = e.clientX
+    const y = e.clientY
+    
+    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+      setDragOverColumn(null)
+    }
+  }
+
   const handleDrop = (e: React.DragEvent, newStatus: string) => {
     e.preventDefault()
+    console.log('Dropped in:', newStatus)
+    
     if (draggedTask && draggedTask.status !== newStatus) {
-      updateTask(draggedTask.id, { ...draggedTask, status: newStatus })
+      console.log('Updating task status from', draggedTask.status, 'to', newStatus)
+      
+      // Actualizar en el store si existe, sino actualizar localmente
+      if (tasks.length > 0) {
+        updateTask(draggedTask.id, { ...draggedTask, status: newStatus })
+      } else {
+        // Para datos de ejemplo, actualizar localmente
+        const updatedTasks = sampleTasks.map(task => 
+          task.id === draggedTask.id ? { ...task, status: newStatus } : task
+        )
+        console.log('Updated tasks:', updatedTasks)
+      }
+      
+      // Mostrar feedback visual
+      alert(`Tarea "${draggedTask.title}" movida a "${columns.find(c => c.id === newStatus)?.title}"`)
     }
+    
     setDraggedTask(null)
+    setDragOverColumn(null)
   }
 
   const getTasksByStatus = (status: string) => {
@@ -103,12 +152,23 @@ const KanbanBoard = () => {
         </button>
       </div>
 
+      <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+        <p className="text-sm text-blue-800">
+          💡 <strong>Cómo usar:</strong> Arrastra las tarjetas entre columnas para cambiar su estado. 
+          Haz clic en 💬 para ver comentarios.
+        </p>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {columns.map((column) => (
           <div
             key={column.id}
-            className={`${column.color} rounded-lg p-4 min-h-[500px]`}
+            className={`${column.color} rounded-lg p-4 min-h-[500px] transition-all duration-200 ${
+              dragOverColumn === column.id ? 'ring-2 ring-primary-500 ring-opacity-50 scale-105' : ''
+            }`}
             onDragOver={handleDragOver}
+            onDragEnter={(e) => handleDragEnter(e, column.id)}
+            onDragLeave={handleDragLeave}
             onDrop={(e) => handleDrop(e, column.id)}
           >
             <div className="flex justify-between items-center mb-4">
@@ -124,7 +184,8 @@ const KanbanBoard = () => {
                   key={task.id}
                   draggable
                   onDragStart={(e) => handleDragStart(e, task)}
-                  className={`bg-white rounded-lg p-4 shadow-sm border-l-4 ${priorityColors[task.priority as keyof typeof priorityColors]} cursor-move hover:shadow-md transition-shadow`}
+                  onDragEnd={handleDragEnd}
+                  className={`bg-white rounded-lg p-4 shadow-sm border-l-4 ${priorityColors[task.priority as keyof typeof priorityColors]} cursor-move hover:shadow-md transition-all duration-200 select-none`}
                 >
                   <h4 className="font-medium text-gray-900 mb-2 text-sm">
                     {task.title}
@@ -149,8 +210,11 @@ const KanbanBoard = () => {
                       {task.region}
                     </span>
                     <button
-                      onClick={() => setCommentsOpen(task.id)}
-                      className="flex items-center gap-1 text-xs text-gray-500 hover:text-blue-600"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setCommentsOpen(task.id)
+                      }}
+                      className="flex items-center gap-1 text-xs text-gray-500 hover:text-blue-600 transition-colors"
                     >
                       <MessageCircle size={12} />
                       {task.comments || 0}
