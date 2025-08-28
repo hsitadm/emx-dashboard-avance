@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Plus, MessageCircle, User, Calendar, ArrowRight, ArrowLeft } from 'lucide-react'
 import { useStore } from '../store/useStore'
 import TaskComments from './TaskComments'
+import TaskModal from './TaskModal'
 
 interface LocalTask {
   id: string
@@ -16,8 +17,9 @@ interface LocalTask {
 }
 
 const KanbanBoard = () => {
-  const { tasks, updateTask } = useStore()
+  const { tasks, updateTask, addTask } = useStore()
   const [commentsOpen, setCommentsOpen] = useState<string | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
   const [localTasks, setLocalTasks] = useState<LocalTask[]>([
     {
       id: '1',
@@ -90,6 +92,23 @@ const KanbanBoard = () => {
     console.log(`Tarea "${task.title}" movida a "${columnName}"`)
   }
 
+  const handleSaveTask = (taskData: any) => {
+    const newTask: LocalTask = {
+      id: Date.now().toString(),
+      title: taskData.title,
+      description: taskData.description,
+      status: taskData.status || 'planning',
+      assignee: taskData.assignee,
+      dueDate: taskData.dueDate,
+      priority: taskData.priority,
+      region: taskData.region,
+      comments: 0
+    }
+
+    setLocalTasks(prev => [...prev, newTask])
+    console.log('Nueva tarea creada:', newTask.title)
+  }
+
   const getTasksByStatus = (status: string) => {
     return localTasks.filter(task => task.status === status)
   }
@@ -108,7 +127,10 @@ const KanbanBoard = () => {
     <div className="card">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-semibold text-gray-900">Tablero Kanban</h2>
-        <button className="btn-primary flex items-center gap-2">
+        <button 
+          onClick={() => setIsModalOpen(true)}
+          className="btn-primary flex items-center gap-2"
+        >
           <Plus size={16} />
           Nueva Tarea
         </button>
@@ -117,7 +139,7 @@ const KanbanBoard = () => {
       <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
         <p className="text-sm text-green-800">
           ✨ <strong>Cómo usar:</strong> Usa las flechas ← → en cada tarjeta para mover entre estados. 
-          Haz clic en el número junto a 💬 para ver comentarios.
+          Haz clic en el número junto a 💬 para ver comentarios. Haz clic en "Nueva Tarea" para agregar.
         </p>
       </div>
 
@@ -208,6 +230,12 @@ const KanbanBoard = () => {
         taskId={commentsOpen || ''}
         isOpen={!!commentsOpen}
         onClose={() => setCommentsOpen(null)}
+      />
+
+      <TaskModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSave={handleSaveTask}
       />
     </div>
   )
