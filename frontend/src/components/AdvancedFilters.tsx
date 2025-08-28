@@ -16,10 +16,8 @@ const AdvancedFilters = ({ onFiltersChange }: FilterProps) => {
     dateTo: ''
   })
 
-  const regions = ['CECA', 'SOLA', 'MX', 'SNAP', 'COEC']
+  const regions = ['TODAS', 'CECA', 'SOLA', 'MX', 'SNAP', 'COEC']
   const assignees = ['María González', 'Carlos Ruiz', 'Ana López', 'Pedro Martín', 'Laura Jiménez']
-  const priorities = ['low', 'medium', 'high']
-  const statuses = ['planning', 'in-progress', 'review', 'completed']
 
   const handleFilterChange = (key: string, value: string) => {
     const newFilters = { ...filters, [key]: value }
@@ -85,7 +83,9 @@ const AdvancedFilters = ({ onFiltersChange }: FilterProps) => {
               >
                 <option value="">Todas las regiones</option>
                 {regions.map(region => (
-                  <option key={region} value={region}>{region}</option>
+                  <option key={region} value={region}>
+                    {region === 'TODAS' ? '🌍 TODAS' : region}
+                  </option>
                 ))}
               </select>
             </div>
