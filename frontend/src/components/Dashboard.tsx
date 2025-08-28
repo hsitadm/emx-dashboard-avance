@@ -8,7 +8,8 @@ import Charts from './Charts'
 import KanbanBoard from './KanbanBoard'
 import CalendarView from './CalendarView'
 import Gamification from './Gamification'
-import { LayoutGrid, Calendar, Kanban, BarChart3, Trophy } from 'lucide-react'
+import StoriesView from './StoriesView'
+import { LayoutGrid, Calendar, Kanban, BarChart3, Trophy, BookOpen } from 'lucide-react'
 
 const Dashboard = () => {
   const user = useStore(state => state.user)
@@ -16,6 +17,7 @@ const Dashboard = () => {
 
   const views = [
     { id: 'overview', label: 'Resumen', icon: LayoutGrid },
+    { id: 'stories', label: 'Historias', icon: BookOpen },
     { id: 'kanban', label: 'Kanban', icon: Kanban },
     { id: 'calendar', label: 'Calendario', icon: Calendar },
     { id: 'analytics', label: 'Análisis', icon: BarChart3 },
@@ -73,6 +75,8 @@ const Dashboard = () => {
             </div>
           </div>
         )}
+
+        {activeView === 'stories' && <StoriesView />}
 
         {activeView === 'kanban' && <KanbanBoard />}
 
