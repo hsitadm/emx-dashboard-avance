@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
-import { ChevronLeft, ChevronRight, Calendar, Plus, X, Save } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Calendar, Plus, X, Save, User } from 'lucide-react'
 import { useStore } from '../store/useStore'
+import apiService from '../services/api.js'
 
 const CalendarView = () => {
   const { tasks, loadTasks, addTask } = useStore()
@@ -8,16 +9,28 @@ const CalendarView = () => {
   const [view, setView] = useState<'month' | 'week'>('month')
   const [showEventModal, setShowEventModal] = useState(false)
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+  const [users, setUsers] = useState<any[]>([])
   const [eventForm, setEventForm] = useState({
     title: '',
     description: '',
     priority: 'medium',
-    region: 'TODAS'
+    region: 'TODAS',
+    assignee_id: ''
   })
 
   useEffect(() => {
     loadTasks()
+    loadUsers()
   }, [loadTasks])
+
+  const loadUsers = async () => {
+    try {
+      const usersData = await apiService.getUsers()
+      setUsers(usersData)
+    } catch (error) {
+      console.error('Error loading users:', error)
+    }
+  }
 
   const milestones = [
     { id: '1', title: 'Kick-off del Proyecto', date: '2025-01-15', completed: true },
@@ -121,7 +134,8 @@ const CalendarView = () => {
       title: '',
       description: '',
       priority: 'medium',
-      region: 'TODAS'
+      region: 'TODAS',
+      assignee_id: users.length > 0 ? users[0].id.toString() : '8' // Default to first user or Usuario Demo
     })
   }
 
@@ -132,7 +146,7 @@ const CalendarView = () => {
       title: eventForm.title,
       description: eventForm.description,
       status: 'planning' as const,
-      assignee_id: 8, // Usuario Demo
+      assignee_id: parseInt(eventForm.assignee_id) || 8,
       due_date: selectedDate.toISOString().split('T')[0],
       priority: eventForm.priority as 'low' | 'medium' | 'high',
       region: eventForm.region,
@@ -197,7 +211,7 @@ const CalendarView = () => {
 
       <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
         <p className="text-sm text-blue-800">
-          📅 <strong>Cómo usar:</strong> Haz clic en cualquier día para crear un nuevo evento/tarea. 
+          📅 <strong>Cómo usar:</strong> Haz clic en cualquier día para crear un nuevo evento/tarea con responsable asignado. 
           Los puntos de colores indican prioridad: 🔴 Alta, 🟡 Media, 🟢 Baja.
         </p>
       </div>
@@ -294,6 +308,24 @@ const CalendarView = () => {
                   rows={3}
                   placeholder="Descripción del evento..."
                 />
+              </div>
+
+              <div>
+                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1">
+                  <User size={14} />
+                  Responsable
+                </label>
+                <select
+                  value={eventForm.assignee_id}
+                  onChange={(e) => setEventForm({...eventForm, assignee_id: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  {users.map(user => (
+                    <option key={user.id} value={user.id}>
+                      {user.name} ({user.role})
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
