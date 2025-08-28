@@ -62,10 +62,11 @@ const ProgressOverview = () => {
         
         <div className="space-y-4">
           {[
-            { region: 'Norte', progress: 75, tasks: 24 },
-            { region: 'Centro', progress: 68, tasks: 31 },
-            { region: 'Sur', progress: 82, tasks: 19 },
-            { region: 'Occidente', progress: 45, tasks: 28 }
+            { region: 'CECA', progress: 75, tasks: 24 },
+            { region: 'SOLA', progress: 68, tasks: 31 },
+            { region: 'MX', progress: 82, tasks: 19 },
+            { region: 'SNAP', progress: 45, tasks: 28 },
+            { region: 'COEC', progress: 63, tasks: 22 }
           ].map((item, index) => (
             <div key={index} className="flex items-center justify-between">
               <div className="flex-1">

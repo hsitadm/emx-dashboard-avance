@@ -148,10 +148,11 @@ const TaskModal = ({ task, isOpen, onClose, onSave }: TaskModalProps) => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
               >
                 <option value="">Seleccionar</option>
-                <option value="Norte">Norte</option>
-                <option value="Centro">Centro</option>
-                <option value="Sur">Sur</option>
-                <option value="Occidente">Occidente</option>
+                <option value="CECA">CECA</option>
+                <option value="SOLA">SOLA</option>
+                <option value="MX">MX</option>
+                <option value="SNAP">SNAP</option>
+                <option value="COEC">COEC</option>
               </select>
             </div>
           </div>

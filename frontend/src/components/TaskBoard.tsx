@@ -21,7 +21,7 @@ const TaskBoard = () => {
       assignee: 'María González',
       dueDate: '2025-02-15',
       priority: 'high',
-      region: 'Norte'
+      region: 'CECA'
     },
     {
       id: '2',
@@ -31,7 +31,7 @@ const TaskBoard = () => {
       assignee: 'Carlos Ruiz',
       dueDate: '2025-01-30',
       priority: 'medium',
-      region: 'Centro'
+      region: 'SOLA'
     },
     {
       id: '3',
@@ -41,7 +41,7 @@ const TaskBoard = () => {
       assignee: 'Ana López',
       dueDate: '2025-03-01',
       priority: 'high',
-      region: 'Sur'
+      region: 'MX'
     },
     {
       id: '4',
@@ -51,7 +51,17 @@ const TaskBoard = () => {
       assignee: 'Pedro Martín',
       dueDate: '2025-02-20',
       priority: 'medium',
-      region: 'Occidente'
+      region: 'SNAP'
+    },
+    {
+      id: '5',
+      title: 'Implementación COEC',
+      description: 'Despliegue del sistema en región COEC',
+      status: 'in-progress',
+      assignee: 'Laura Jiménez',
+      dueDate: '2025-02-28',
+      priority: 'high',
+      region: 'COEC'
     }
   ]
 

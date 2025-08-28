@@ -16,8 +16,8 @@ const AdvancedFilters = ({ onFiltersChange }: FilterProps) => {
     dateTo: ''
   })
 
-  const regions = ['Norte', 'Centro', 'Sur', 'Occidente']
-  const assignees = ['María González', 'Carlos Ruiz', 'Ana López', 'Pedro Martín']
+  const regions = ['CECA', 'SOLA', 'MX', 'SNAP', 'COEC']
+  const assignees = ['María González', 'Carlos Ruiz', 'Ana López', 'Pedro Martín', 'Laura Jiménez']
   const priorities = ['low', 'medium', 'high']
   const statuses = ['planning', 'in-progress', 'review', 'completed']
 

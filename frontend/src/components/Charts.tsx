@@ -2,10 +2,11 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 
 const Charts = () => {
   const regionData = [
-    { name: 'Norte', completed: 24, pending: 8, total: 32 },
-    { name: 'Centro', completed: 31, pending: 12, total: 43 },
-    { name: 'Sur', completed: 19, pending: 4, total: 23 },
-    { name: 'Occidente', completed: 15, pending: 13, total: 28 }
+    { name: 'CECA', completed: 24, pending: 8, total: 32 },
+    { name: 'SOLA', completed: 31, pending: 12, total: 43 },
+    { name: 'MX', completed: 19, pending: 4, total: 23 },
+    { name: 'SNAP', completed: 15, pending: 13, total: 28 },
+    { name: 'COEC', completed: 18, pending: 9, total: 27 }
   ]
 
   const statusData = [
