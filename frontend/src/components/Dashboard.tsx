@@ -3,6 +3,7 @@ import Header from './Header'
 import ProgressOverview from './ProgressOverview'
 import TaskBoard from './TaskBoard'
 import MilestoneTimeline from './MilestoneTimeline'
+import Charts from './Charts'
 
 const Dashboard = () => {
   const user = useStore(state => state.user)
@@ -21,14 +22,25 @@ const Dashboard = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-8">
-            <ProgressOverview />
-            <TaskBoard />
-          </div>
+        <div className="space-y-8">
+          {/* Resumen y Métricas */}
+          <ProgressOverview />
           
-          <div className="space-y-8">
-            <MilestoneTimeline />
+          {/* Gráficos Interactivos */}
+          <div className="card">
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">Análisis Visual</h2>
+            <Charts />
+          </div>
+
+          {/* Layout Principal */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2">
+              <TaskBoard />
+            </div>
+            
+            <div>
+              <MilestoneTimeline />
+            </div>
           </div>
         </div>
       </main>

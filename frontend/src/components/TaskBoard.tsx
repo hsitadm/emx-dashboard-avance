@@ -1,10 +1,18 @@
 import { useState } from 'react'
-import { Plus, User, Calendar, AlertCircle } from 'lucide-react'
+import { Plus, User, Calendar, AlertCircle, Edit, Trash2 } from 'lucide-react'
+import { useStore } from '../store/useStore'
+import TaskModal from './TaskModal'
+import AdvancedFilters from './AdvancedFilters'
 
 const TaskBoard = () => {
+  const { tasks, addTask, updateTask } = useStore()
   const [selectedStatus, setSelectedStatus] = useState('all')
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [editingTask, setEditingTask] = useState(null)
+  const [filters, setFilters] = useState({})
 
-  const tasks = [
+  // Datos de ejemplo si no hay tareas en el store
+  const sampleTasks = [
     {
       id: '1',
       title: 'Migración Clientes Corporativos',
@@ -47,11 +55,13 @@ const TaskBoard = () => {
     }
   ]
 
+  const allTasks = tasks.length > 0 ? tasks : sampleTasks
+
   const statusConfig = {
-    planning: { label: 'Planificación', color: 'bg-gray-100 text-gray-800', count: 1 },
-    'in-progress': { label: 'En Progreso', color: 'bg-blue-100 text-blue-800', count: 1 },
-    review: { label: 'En Revisión', color: 'bg-yellow-100 text-yellow-800', count: 1 },
-    completed: { label: 'Completado', color: 'bg-green-100 text-green-800', count: 1 }
+    planning: { label: 'Planificación', color: 'bg-gray-100 text-gray-800' },
+    'in-progress': { label: 'En Progreso', color: 'bg-blue-100 text-blue-800' },
+    review: { label: 'En Revisión', color: 'bg-yellow-100 text-yellow-800' },
+    completed: { label: 'Completado', color: 'bg-green-100 text-green-800' }
   }
 
   const priorityConfig = {
@@ -60,18 +70,56 @@ const TaskBoard = () => {
     high: { color: 'text-red-600', icon: '●' }
   }
 
-  const filteredTasks = selectedStatus === 'all' 
-    ? tasks 
-    : tasks.filter(task => task.status === selectedStatus)
+  const applyFilters = (taskList: any[]) => {
+    return taskList.filter(task => {
+      if (filters.region && task.region !== filters.region) return false
+      if (filters.assignee && task.assignee !== filters.assignee) return false
+      if (filters.priority && task.priority !== filters.priority) return false
+      if (filters.status && task.status !== filters.status) return false
+      if (filters.dateFrom && task.dueDate < filters.dateFrom) return false
+      if (filters.dateTo && task.dueDate > filters.dateTo) return false
+      return true
+    })
+  }
+
+  const filteredTasks = applyFilters(
+    selectedStatus === 'all' ? allTasks : allTasks.filter(task => task.status === selectedStatus)
+  )
+
+  const getStatusCount = (status: string) => {
+    return applyFilters(allTasks.filter(task => task.status === status)).length
+  }
+
+  const handleEditTask = (task: any) => {
+    setEditingTask(task)
+    setIsModalOpen(true)
+  }
+
+  const handleSaveTask = (task: any) => {
+    if (editingTask) {
+      updateTask(task.id, task)
+    } else {
+      addTask(task)
+    }
+    setEditingTask(null)
+  }
+
+  const handleNewTask = () => {
+    setEditingTask(null)
+    setIsModalOpen(true)
+  }
 
   return (
     <div className="card">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-semibold text-gray-900">Gestión de Tareas</h2>
-        <button className="btn-primary flex items-center gap-2">
-          <Plus size={16} />
-          Nueva Tarea
-        </button>
+        <div className="flex gap-3">
+          <AdvancedFilters onFiltersChange={setFilters} />
+          <button onClick={handleNewTask} className="btn-primary flex items-center gap-2">
+            <Plus size={16} />
+            Nueva Tarea
+          </button>
+        </div>
       </div>
 
       <div className="flex gap-2 mb-6 overflow-x-auto">
@@ -83,7 +131,7 @@ const TaskBoard = () => {
               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
           }`}
         >
-          Todas ({tasks.length})
+          Todas ({applyFilters(allTasks).length})
         </button>
         {Object.entries(statusConfig).map(([status, config]) => (
           <button
@@ -95,7 +143,7 @@ const TaskBoard = () => {
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
-            {config.label} ({config.count})
+            {config.label} ({getStatusCount(status)})
           </button>
         ))}
       </div>
@@ -108,9 +156,17 @@ const TaskBoard = () => {
                 <h3 className="font-medium text-gray-900 mb-1">{task.title}</h3>
                 <p className="text-sm text-gray-600 mb-2">{task.description}</p>
               </div>
-              <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusConfig[task.status as keyof typeof statusConfig].color}`}>
-                {statusConfig[task.status as keyof typeof statusConfig].label}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusConfig[task.status as keyof typeof statusConfig].color}`}>
+                  {statusConfig[task.status as keyof typeof statusConfig].label}
+                </span>
+                <button
+                  onClick={() => handleEditTask(task)}
+                  className="p-1 text-gray-400 hover:text-blue-600"
+                >
+                  <Edit size={14} />
+                </button>
+              </div>
             </div>
 
             <div className="flex items-center justify-between text-sm text-gray-500">
@@ -136,7 +192,20 @@ const TaskBoard = () => {
             </div>
           </div>
         ))}
+
+        {filteredTasks.length === 0 && (
+          <div className="text-center py-8 text-gray-500">
+            No se encontraron tareas con los filtros aplicados
+          </div>
+        )}
       </div>
+
+      <TaskModal
+        task={editingTask}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSave={handleSaveTask}
+      />
     </div>
   )
 }

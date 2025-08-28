@@ -1,5 +1,6 @@
 import { useStore } from '../store/useStore'
 import { LogOut, Settings } from 'lucide-react'
+import Notifications from './Notifications'
 
 const Header = () => {
   const { user, setUser } = useStore()
@@ -21,6 +22,8 @@ const Header = () => {
               <span className="font-medium">{user?.name}</span>
               <span className="text-gray-500 ml-2">({user?.role})</span>
             </div>
+            
+            <Notifications />
             
             <button className="p-2 text-gray-400 hover:text-gray-600">
               <Settings size={20} />
