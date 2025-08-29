@@ -49,16 +49,26 @@ const Charts = () => {
       }))
       setStatusData(statusStats)
 
-      // Progreso de historias - Corregir formato
+      // Progreso de historias - Títulos más cortos para mejor visualización
       if (stories && stories.length > 0) {
-        const storyProgress = stories.map((story: any) => ({
-          name: story.title.length > 25 ? story.title.substring(0, 25) + '...' : story.title,
-          fullName: story.title,
-          progress: story.progress || 0,
-          tasks: story.task_count || 0,
-          completed: story.completed_tasks || 0,
-          status: story.status
-        }))
+        const storyProgress = stories.map((story: any) => {
+          // Crear títulos más cortos y descriptivos
+          let shortName = story.title
+          if (story.title.includes('Comunicación')) shortName = 'Comunicación'
+          else if (story.title.includes('Transición')) shortName = 'Transición Equipos'
+          else if (story.title.includes('Estabilización')) shortName = 'Estabilización'
+          else if (story.title.includes('Nuevas Ofertas')) shortName = 'Nuevas Ofertas'
+          else if (story.title.length > 15) shortName = story.title.substring(0, 15) + '...'
+          
+          return {
+            name: shortName,
+            fullName: story.title,
+            progress: story.progress || 0,
+            tasks: story.task_count || 0,
+            completed: story.completed_tasks || 0,
+            status: story.status
+          }
+        })
         console.log('Story progress data:', storyProgress) // Debug
         setStoryProgressData(storyProgress)
       } else {
@@ -151,19 +161,24 @@ const Charts = () => {
         </div>
       </div>
 
-      {/* Gráfico de Progreso de Historias - Corregido */}
+      {/* Gráfico de Progreso de Historias - Títulos mejorados */}
       <div className="card lg:col-span-2">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Progreso de Historias del Proyecto</h3>
         {storyProgressData.length > 0 ? (
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={storyProgressData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+          <ResponsiveContainer width="100%" height={350}>
+            <BarChart 
+              data={storyProgressData} 
+              margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+            >
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis 
                 dataKey="name" 
-                angle={-45}
+                angle={-25}
                 textAnchor="end"
-                height={80}
+                height={100}
                 interval={0}
+                fontSize={12}
+                tick={{ fontSize: 12 }}
               />
               <YAxis 
                 domain={[0, 100]}
@@ -180,8 +195,18 @@ const Charts = () => {
                   const story = storyProgressData.find(s => s.name === label)
                   return story ? story.fullName : label
                 }}
+                contentStyle={{
+                  backgroundColor: '#f9fafb',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '6px'
+                }}
               />
-              <Bar dataKey="progress" fill="#3b82f6" name="Progreso" />
+              <Bar 
+                dataKey="progress" 
+                fill="#3b82f6" 
+                name="Progreso"
+                radius={[4, 4, 0, 0]}
+              />
             </BarChart>
           </ResponsiveContainer>
         ) : (
