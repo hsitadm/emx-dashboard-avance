@@ -4,12 +4,13 @@ import Header from './Header'
 import ProgressOverview from './ProgressOverview'
 import TaskBoard from './TaskBoard'
 import MilestoneTimeline from './MilestoneTimeline'
+import MilestonesView from './MilestonesView'
 import Charts from './Charts'
 import KanbanBoard from './KanbanBoard'
 import CalendarView from './CalendarView'
 import Gamification from './Gamification'
 import StoriesView from './StoriesView'
-import { LayoutGrid, Calendar, Kanban, BarChart3, Trophy, BookOpen, CheckSquare } from 'lucide-react'
+import { LayoutGrid, Calendar, Kanban, BarChart3, Trophy, BookOpen, CheckSquare, Target } from 'lucide-react'
 
 const Dashboard = () => {
   const user = useStore(state => state.user)
@@ -19,6 +20,7 @@ const Dashboard = () => {
     { id: 'overview', label: 'Resumen', icon: LayoutGrid },
     { id: 'stories', label: 'Historias', icon: BookOpen },
     { id: 'tasks', label: 'Tareas', icon: CheckSquare },
+    { id: 'milestones', label: 'Hitos', icon: Target },
     { id: 'kanban', label: 'Kanban', icon: Kanban },
     { id: 'calendar', label: 'Calendario', icon: Calendar },
     { id: 'analytics', label: 'Análisis', icon: BarChart3 },
@@ -78,6 +80,8 @@ const Dashboard = () => {
         {activeView === 'stories' && <StoriesView />}
 
         {activeView === 'tasks' && <TaskBoard />}
+
+        {activeView === 'milestones' && <MilestonesView />}
 
         {activeView === 'kanban' && <KanbanBoard />}
 
