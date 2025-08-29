@@ -6,12 +6,13 @@ const router = express.Router()
 // GET /api/tasks - Obtener todas las tareas
 router.get('/', async (req, res) => {
   try {
-    const { region, status, assignee, priority } = req.query
+    const { region, status, assignee, priority, story_id } = req.query
     
     let query = `
-      SELECT t.*, u.name as assignee_name 
+      SELECT t.*, u.name as assignee_name, s.title as story_title
       FROM tasks t 
       LEFT JOIN users u ON t.assignee_id = u.id 
+      LEFT JOIN stories s ON t.story_id = s.id
       WHERE 1=1
     `
     const params = []
@@ -36,6 +37,11 @@ router.get('/', async (req, res) => {
       params.push(priority)
     }
 
+    if (story_id) {
+      query += ` AND t.story_id = ?`
+      params.push(story_id)
+    }
+
     query += ' ORDER BY t.created_at DESC'
 
     const result = await db.query(query, params)
@@ -49,16 +55,27 @@ router.get('/', async (req, res) => {
 // POST /api/tasks - Crear nueva tarea
 router.post('/', async (req, res) => {
   try {
-    const { title, description, status, assignee_id, due_date, priority, region } = req.body
+    const { title, description, status, assignee_id, due_date, priority, region, story_id } = req.body
+
+    if (!story_id) {
+      return res.status(400).json({ error: 'story_id is required' })
+    }
 
     const result = await db.run(
-      `INSERT INTO tasks (title, description, status, assignee_id, due_date, priority, region) 
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [title, description, status || 'planning', assignee_id, due_date, priority || 'medium', region]
+      `INSERT INTO tasks (title, description, status, assignee_id, due_date, priority, region, story_id) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [title, description, status || 'planning', assignee_id, due_date, priority || 'medium', region, story_id]
     )
 
-    // Get the created task
-    const task = await db.query('SELECT * FROM tasks WHERE id = ?', [result.lastID])
+    // Get the created task with story info
+    const task = await db.query(`
+      SELECT t.*, u.name as assignee_name, s.title as story_title
+      FROM tasks t 
+      LEFT JOIN users u ON t.assignee_id = u.id 
+      LEFT JOIN stories s ON t.story_id = s.id
+      WHERE t.id = ?
+    `, [result.lastID])
+    
     res.status(201).json(task.rows[0])
   } catch (error) {
     console.error('Error creating task:', error)
@@ -70,17 +87,23 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params
-    const { title, description, status, assignee_id, due_date, priority, region, progress } = req.body
+    const { title, description, status, assignee_id, due_date, priority, region, progress, story_id } = req.body
 
     await db.run(
       `UPDATE tasks 
        SET title = ?, description = ?, status = ?, assignee_id = ?, 
-           due_date = ?, priority = ?, region = ?, progress = ?
+           due_date = ?, priority = ?, region = ?, progress = ?, story_id = ?
        WHERE id = ?`,
-      [title, description, status, assignee_id, due_date, priority, region, progress, id]
+      [title, description, status, assignee_id, due_date, priority, region, progress, story_id, id]
     )
 
-    const result = await db.query('SELECT * FROM tasks WHERE id = ?', [id])
+    const result = await db.query(`
+      SELECT t.*, u.name as assignee_name, s.title as story_title
+      FROM tasks t 
+      LEFT JOIN users u ON t.assignee_id = u.id 
+      LEFT JOIN stories s ON t.story_id = s.id
+      WHERE t.id = ?
+    `, [id])
     
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Task not found' })
@@ -90,6 +113,24 @@ router.put('/:id', async (req, res) => {
   } catch (error) {
     console.error('Error updating task:', error)
     res.status(500).json({ error: 'Failed to update task' })
+  }
+})
+
+// DELETE /api/tasks/:id - Eliminar tarea
+router.delete('/:id', async (req, res) => {
+  try {
+    const { id } = req.params
+
+    const result = await db.run('DELETE FROM tasks WHERE id = ?', [id])
+
+    if (result.changes === 0) {
+      return res.status(404).json({ error: 'Task not found' })
+    }
+
+    res.json({ message: 'Task deleted successfully' })
+  } catch (error) {
+    console.error('Error deleting task:', error)
+    res.status(500).json({ error: 'Failed to delete task' })
   }
 })
 

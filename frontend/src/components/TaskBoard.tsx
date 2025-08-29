@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, User, Calendar, Edit } from 'lucide-react'
+import { Plus, User, Calendar, Edit, BookOpen } from 'lucide-react'
 import { useStore } from '../store/useStore'
 import TaskModal from './TaskModal'
 import AdvancedFilters from './AdvancedFilters'
@@ -79,6 +79,13 @@ const TaskBoard = () => {
         </div>
       </div>
 
+      <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+        <p className="text-sm text-blue-800">
+          📚 <strong>Tareas por Historia:</strong> Cada tarea debe estar asociada a una historia. 
+          Las historias agrupan tareas relacionadas hacia un objetivo común.
+        </p>
+      </div>
+
       <div className="flex gap-2 mb-6 overflow-x-auto">
         <button
           onClick={() => setSelectedStatus('all')}
@@ -110,7 +117,15 @@ const TaskBoard = () => {
           <div key={task.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
             <div className="flex items-start justify-between mb-3">
               <div className="flex-1">
-                <h3 className="font-medium text-gray-900 mb-1">{task.title}</h3>
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="font-medium text-gray-900">{task.title}</h3>
+                  {task.story_title && (
+                    <div className="flex items-center gap-1 px-2 py-1 bg-primary-50 text-primary-700 rounded-full text-xs">
+                      <BookOpen size={12} />
+                      <span>{task.story_title}</span>
+                    </div>
+                  )}
+                </div>
                 <p className="text-sm text-gray-600 mb-2">{task.description}</p>
                 
                 {/* Progress bar */}
