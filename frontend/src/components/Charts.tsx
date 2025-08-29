@@ -23,6 +23,8 @@ const Charts = () => {
         apiService.getDashboardMetrics()
       ])
 
+      console.log('Stories data:', stories) // Debug
+
       // Procesar datos por región
       const regionStats = {}
       tasks.forEach((task: any) => {
@@ -47,14 +49,22 @@ const Charts = () => {
       }))
       setStatusData(statusStats)
 
-      // Progreso de historias para gráfico de línea
-      const storyProgress = stories.map((story: any, index: number) => ({
-        name: story.title.substring(0, 20) + (story.title.length > 20 ? '...' : ''),
-        progress: story.progress || 0,
-        tasks: story.task_count || 0,
-        completed: story.completed_tasks || 0
-      }))
-      setStoryProgressData(storyProgress)
+      // Progreso de historias - Corregir formato
+      if (stories && stories.length > 0) {
+        const storyProgress = stories.map((story: any) => ({
+          name: story.title.length > 25 ? story.title.substring(0, 25) + '...' : story.title,
+          fullName: story.title,
+          progress: story.progress || 0,
+          tasks: story.task_count || 0,
+          completed: story.completed_tasks || 0,
+          status: story.status
+        }))
+        console.log('Story progress data:', storyProgress) // Debug
+        setStoryProgressData(storyProgress)
+      } else {
+        console.log('No stories found') // Debug
+        setStoryProgressData([])
+      }
 
     } catch (error) {
       console.error('Error loading chart data:', error)
@@ -141,25 +151,53 @@ const Charts = () => {
         </div>
       </div>
 
-      {/* Gráfico de Línea - Progreso de Historias */}
+      {/* Gráfico de Progreso de Historias - Corregido */}
       <div className="card lg:col-span-2">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Progreso de Historias del Proyecto</h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={storyProgressData} layout="horizontal">
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis type="number" domain={[0, 100]} />
-            <YAxis dataKey="name" type="category" width={150} />
-            <Tooltip 
-              formatter={(value, name) => [
-                name === 'progress' ? `${value}%` : value,
-                name === 'progress' ? 'Progreso' : name === 'tasks' ? 'Total Tareas' : 'Completadas'
-              ]}
-            />
-            <Bar dataKey="progress" fill="#3b82f6" name="Progreso %" />
-          </BarChart>
-        </ResponsiveContainer>
+        {storyProgressData.length > 0 ? (
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={storyProgressData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis 
+                dataKey="name" 
+                angle={-45}
+                textAnchor="end"
+                height={80}
+                interval={0}
+              />
+              <YAxis 
+                domain={[0, 100]}
+                label={{ value: 'Progreso (%)', angle: -90, position: 'insideLeft' }}
+              />
+              <Tooltip 
+                formatter={(value: any, name: string) => [
+                  name === 'progress' ? `${value}%` : value,
+                  name === 'progress' ? 'Progreso' : 
+                  name === 'tasks' ? 'Total Tareas' : 
+                  name === 'completed' ? 'Completadas' : name
+                ]}
+                labelFormatter={(label) => {
+                  const story = storyProgressData.find(s => s.name === label)
+                  return story ? story.fullName : label
+                }}
+              />
+              <Bar dataKey="progress" fill="#3b82f6" name="Progreso" />
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="h-64 flex items-center justify-center text-gray-500">
+            <div className="text-center">
+              <div className="text-4xl mb-2">📚</div>
+              <p>No hay historias disponibles</p>
+              <p className="text-sm">Crea historias en la pestaña correspondiente</p>
+            </div>
+          </div>
+        )}
         <div className="mt-2 text-xs text-gray-500 text-center">
-          Progreso calculado automáticamente basado en tareas completadas por historia
+          {storyProgressData.length > 0 
+            ? 'Progreso calculado automáticamente basado en tareas completadas por historia'
+            : 'Ve a la pestaña Historias para crear y gestionar historias del proyecto'
+          }
         </div>
       </div>
 
@@ -187,7 +225,9 @@ const Charts = () => {
           </div>
           <div className="text-center p-4 bg-purple-50 rounded-lg">
             <div className="text-2xl font-bold text-purple-600">
-              {Math.round(storyProgressData.reduce((acc, story) => acc + story.progress, 0) / storyProgressData.length) || 0}%
+              {storyProgressData.length > 0 
+                ? Math.round(storyProgressData.reduce((acc, story) => acc + story.progress, 0) / storyProgressData.length)
+                : 0}%
             </div>
             <div className="text-sm text-purple-700">Progreso Promedio</div>
           </div>
