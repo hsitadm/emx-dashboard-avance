@@ -1,0 +1,266 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'EMx Dashboard - Deployment seguro para usuarios internos'
+
+Parameters:
+  KeyPairName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: Nombre del Key Pair para acceso SSH
+    
+  AllowedCIDR:
+    Type: String
+    Default: '0.0.0.0/0'
+    Description: CIDR de IPs permitidas (ej. 192.168.1.0/24 para tu oficina)
+    
+  InstanceType:
+    Type: String
+    Default: t3.small
+    AllowedValues: [t3.micro, t3.small, t3.medium]
+    Description: Tipo de instancia EC2
+
+Resources:
+  # VPC y Networking
+  EMxVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: EMx-Dashboard-VPC
+
+  EMxSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref EMxVPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: EMx-Dashboard-Subnet
+
+  EMxInternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: EMx-Dashboard-IGW
+
+  EMxVPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref EMxVPC
+      InternetGatewayId: !Ref EMxInternetGateway
+
+  EMxRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref EMxVPC
+      Tags:
+        - Key: Name
+          Value: EMx-Dashboard-RouteTable
+
+  EMxRoute:
+    Type: AWS::EC2::Route
+    DependsOn: EMxVPCGatewayAttachment
+    Properties:
+      RouteTableId: !Ref EMxRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref EMxInternetGateway
+
+  EMxSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref EMxSubnet
+      RouteTableId: !Ref EMxRouteTable
+
+  # Security Groups
+  EMxWebSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group para EMx Dashboard - Solo acceso interno
+      VpcId: !Ref EMxVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: !Ref AllowedCIDR
+          Description: HTTP desde IPs permitidas
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: !Ref AllowedCIDR
+          Description: HTTPS desde IPs permitidas
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref AllowedCIDR
+          Description: SSH para administracion
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+          Description: Todo el trafico saliente
+      Tags:
+        - Key: Name
+          Value: EMx-Dashboard-SecurityGroup
+
+  # IAM Role para la instancia
+  EMxInstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
+      Tags:
+        - Key: Name
+          Value: EMx-Dashboard-InstanceRole
+
+  EMxInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref EMxInstanceRole
+
+  # Instancia EC2
+  EMxInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-0c02fb55956c7d316  # Amazon Linux 2023
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyPairName
+      IamInstanceProfile: !Ref EMxInstanceProfile
+      SubnetId: !Ref EMxSubnet
+      SecurityGroupIds:
+        - !Ref EMxWebSecurityGroup
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          yum update -y
+          
+          # Instalar Node.js 18
+          curl -fsSL https://rpm.nodesource.com/setup_18.x | bash -
+          yum install -y nodejs git nginx
+          
+          # Instalar PM2 para gestión de procesos
+          npm install -g pm2
+          
+          # Crear usuario para la aplicación
+          useradd -m -s /bin/bash emxapp
+          
+          # Clonar el repositorio
+          cd /home/emxapp
+          git clone https://github.com/hsitadm/emx-dashboard-avance.git
+          chown -R emxapp:emxapp emx-dashboard-avance
+          
+          # Configurar backend
+          cd /home/emxapp/emx-dashboard-avance/backend
+          sudo -u emxapp npm install
+          
+          # Configurar frontend
+          cd /home/emxapp/emx-dashboard-avance/frontend
+          sudo -u emxapp npm install
+          sudo -u emxapp npm run build
+          
+          # Configurar Nginx
+          cat > /etc/nginx/conf.d/emx-dashboard.conf << 'EOF'
+          server {
+              listen 80;
+              server_name _;
+              
+              # Security headers
+              add_header X-Frame-Options DENY;
+              add_header X-Content-Type-Options nosniff;
+              add_header X-XSS-Protection "1; mode=block";
+              add_header Referrer-Policy strict-origin-when-cross-origin;
+              
+              # Frontend
+              location / {
+                  root /home/emxapp/emx-dashboard-avance/frontend/dist;
+                  try_files $uri $uri/ /index.html;
+              }
+              
+              # Backend API
+              location /api/ {
+                  proxy_pass http://localhost:3001/api/;
+                  proxy_http_version 1.1;
+                  proxy_set_header Upgrade $http_upgrade;
+                  proxy_set_header Connection 'upgrade';
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto $scheme;
+                  proxy_cache_bypass $http_upgrade;
+              }
+          }
+          EOF
+          
+          # Iniciar servicios
+          systemctl enable nginx
+          systemctl start nginx
+          
+          # Iniciar backend con PM2
+          cd /home/emxapp/emx-dashboard-avance/backend
+          sudo -u emxapp pm2 start server.js --name "emx-backend"
+          sudo -u emxapp pm2 startup
+          sudo -u emxapp pm2 save
+          
+          # Configurar firewall local
+          yum install -y firewalld
+          systemctl enable firewalld
+          systemctl start firewalld
+          firewall-cmd --permanent --add-service=http
+          firewall-cmd --permanent --add-service=https
+          firewall-cmd --permanent --add-service=ssh
+          firewall-cmd --reload
+          
+          # Instalar certificado SSL (Let's Encrypt)
+          yum install -y certbot python3-certbot-nginx
+          
+          # Log de instalación
+          echo "EMx Dashboard instalado correctamente - $(date)" >> /var/log/emx-install.log
+          
+      Tags:
+        - Key: Name
+          Value: EMx-Dashboard-Server
+        - Key: Environment
+          Value: Internal
+        - Key: Project
+          Value: EMx-Transition
+
+  # Elastic IP para IP fija
+  EMxElasticIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      InstanceId: !Ref EMxInstance
+      Tags:
+        - Key: Name
+          Value: EMx-Dashboard-EIP
+
+Outputs:
+  DashboardURL:
+    Description: URL del Dashboard EMx
+    Value: !Sub 'http://${EMxElasticIP}'
+    
+  SSHCommand:
+    Description: Comando para conectar via SSH
+    Value: !Sub 'ssh -i ${KeyPairName}.pem ec2-user@${EMxElasticIP}'
+    
+  InstanceId:
+    Description: ID de la instancia EC2
+    Value: !Ref EMxInstance
+    
+  SecurityGroupId:
+    Description: ID del Security Group
+    Value: !Ref EMxWebSecurityGroup
+    
+  ElasticIP:
+    Description: IP publica fija
+    Value: !Ref EMxElasticIP
