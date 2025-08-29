@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend } from 'recharts'
 import apiService from '../services/api.js'
 
 const Charts = () => {
@@ -150,12 +150,8 @@ const Charts = () => {
                 tick={{ fontSize: 12 }}
               />
               <YAxis />
-              <Tooltip 
-                formatter={(value: any, name: string) => [
-                  value,
-                  name === 'completed' ? 'Completadas' : 'Pendientes'
-                ]}
-              />
+              <Tooltip />
+              <Legend />
               <Bar dataKey="completed" fill="#10b981" name="Completadas" />
               <Bar dataKey="pending" fill="#f59e0b" name="Pendientes" />
             </BarChart>
@@ -171,7 +167,7 @@ const Charts = () => {
         )}
         <div className="mt-2 text-xs text-gray-500 text-center">
           {regionData.length > 0 
-            ? 'Datos actualizados en tiempo real desde la base de datos'
+            ? 'Verde = Completadas, Amarillo = Pendientes'
             : 'Cargando datos de tareas por región...'
           }
         </div>
