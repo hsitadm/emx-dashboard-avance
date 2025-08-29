@@ -106,6 +106,25 @@ export const useStore = create<Store>((set, get) => ({
     }
   },
 
+  deleteTask: async (id) => {
+    try {
+      await apiService.request(`/tasks/${id}`, { method: 'DELETE' })
+      set(state => ({
+        tasks: state.tasks.filter(task => task.id !== id)
+      }))
+      get().addNotification({
+        message: 'Tarea eliminada exitosamente',
+        type: 'success'
+      })
+    } catch (error) {
+      console.error('Error deleting task:', error)
+      get().addNotification({
+        message: 'Error al eliminar la tarea',
+        type: 'error'
+      })
+    }
+  },
+
   addNotification: (notification) => {
     const id = Date.now().toString()
     const newNotification = {

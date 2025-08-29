@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
-import { Plus, User, Calendar, Edit, BookOpen } from 'lucide-react'
+import { Plus, User, Calendar, Edit, BookOpen, Trash2 } from 'lucide-react'
 import { useStore } from '../store/useStore'
 import TaskModal from './TaskModal'
 import AdvancedFilters from './AdvancedFilters'
 
 const TaskBoard = () => {
-  const { tasks, loadTasks, updateTask } = useStore()
+  const { tasks, loadTasks, updateTask, addTask, deleteTask } = useStore()
   const [selectedStatus, setSelectedStatus] = useState('all')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingTask, setEditingTask] = useState(null)
@@ -56,9 +56,18 @@ const TaskBoard = () => {
   const handleSaveTask = async (taskData: any) => {
     if (editingTask) {
       await updateTask(editingTask.id, taskData)
+    } else {
+      await addTask(taskData)
     }
     setEditingTask(null)
     setIsModalOpen(false)
+  }
+
+  const handleDeleteTask = async (task: any, e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (confirm(`¿Estás seguro de eliminar la tarea "${task.title}"?`)) {
+      await deleteTask(task.id)
+    }
   }
 
   const handleNewTask = () => {
@@ -153,6 +162,12 @@ const TaskBoard = () => {
                   className="p-1 text-gray-400 hover:text-blue-600"
                 >
                   <Edit size={14} />
+                </button>
+                <button
+                  onClick={(e) => handleDeleteTask(task, e)}
+                  className="p-1 text-gray-400 hover:text-red-600"
+                >
+                  <Trash2 size={14} />
                 </button>
               </div>
             </div>
