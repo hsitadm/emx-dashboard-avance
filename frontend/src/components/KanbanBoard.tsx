@@ -33,9 +33,7 @@ const KanbanBoard = () => {
     if (!task || task.status === newStatus) return
 
     await updateTask(taskId, { ...task, status: newStatus })
-    
-    const columnName = columns.find(c => c.id === newStatus)?.title
-    console.log(`Tarea "${task.title}" movida a "${columnName}"`)
+  }
   }
 
   const handleEditTask = (task: any, e: React.MouseEvent) => {
