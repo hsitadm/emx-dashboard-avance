@@ -32,7 +32,8 @@ const TaskModal = ({ task, isOpen, onClose, onSave }: TaskModalProps) => {
     due_date: task?.dueDate || '',
     priority: task?.priority || 'medium',
     region: task?.region || 'TODAS',
-    story_id: task?.story_id || ''
+    story_id: task?.story_id || '',
+    progress: task?.progress || 0
   })
 
   useEffect(() => {
@@ -86,7 +87,8 @@ const TaskModal = ({ task, isOpen, onClose, onSave }: TaskModalProps) => {
       dueDate: formData.due_date,
       priority: formData.priority,
       region: formData.region,
-      story_id: formData.story_id
+      story_id: formData.story_id,
+      progress: formData.progress
     }
     onSave(newTask)
     onClose()
@@ -216,6 +218,33 @@ const TaskModal = ({ task, isOpen, onClose, onSave }: TaskModalProps) => {
                 value={formData.due_date}
                 onChange={(e) => setFormData({...formData, due_date: e.target.value})}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Progreso: {formData.progress}%
+              </label>
+              <div className="space-y-2">
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={formData.progress}
+                  onChange={(e) => setFormData({...formData, progress: parseInt(e.target.value)})}
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                />
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    className="bg-primary-600 h-2 rounded-full transition-all duration-300" 
+                    style={{ width: `${formData.progress}%` }}
+                  ></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
               />
             </div>
 

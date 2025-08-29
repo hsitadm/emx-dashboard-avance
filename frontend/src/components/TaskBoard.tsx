@@ -172,6 +172,20 @@ const TaskBoard = () => {
               </div>
             </div>
 
+            {/* Barra de progreso */}
+            <div className="mb-3">
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-xs text-gray-500">Progreso</span>
+                <span className="text-xs font-medium text-gray-700">{task.progress || 0}%</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className="bg-primary-600 h-2 rounded-full transition-all duration-300" 
+                  style={{ width: `${task.progress || 0}%` }}
+                ></div>
+              </div>
+            </div>
+
             <div className="flex items-center justify-between text-sm text-gray-500">
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-1">
