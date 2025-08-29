@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { BookOpen, Plus, Users, Calendar, Target, CheckCircle, Clock, Edit, Trash2, ArrowRight } from 'lucide-react'
+import { BookOpen, Plus, Users, Calendar, Target, CheckCircle, Clock, Edit, Trash2, ArrowRight, X, Save } from 'lucide-react'
 import apiService from '../services/api.js'
 
 const StoriesView = () => {
