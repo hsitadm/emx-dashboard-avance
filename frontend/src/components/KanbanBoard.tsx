@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react'
-import { Plus, MessageCircle, User, Calendar, ArrowRight, ArrowLeft } from 'lucide-react'
+import { Plus, MessageCircle, User, Calendar, ArrowRight, ArrowLeft, Edit, Trash2, BookOpen } from 'lucide-react'
 import { useStore } from '../store/useStore'
 import TaskComments from './TaskComments'
 import TaskModal from './TaskModal'
+import apiService from '../services/api.js'
 
 const KanbanBoard = () => {
   const { tasks, loadTasks, updateTask, addTask } = useStore()
   const [commentsOpen, setCommentsOpen] = useState<string | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [editingTask, setEditingTask] = useState<any>(null)
 
   useEffect(() => {
     loadTasks()
@@ -36,18 +38,58 @@ const KanbanBoard = () => {
     console.log(`Tarea "${task.title}" movida a "${columnName}"`)
   }
 
+  const handleEditTask = (task: any, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setEditingTask(task)
+    setIsModalOpen(true)
+  }
+
+  const handleDeleteTask = async (task: any, e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (confirm(`¿Estás seguro de eliminar la tarea "${task.title}"?`)) {
+      try {
+        await apiService.request(`/tasks/${task.id}`, { method: 'DELETE' })
+        await loadTasks() // Recargar tareas
+      } catch (error) {
+        console.error('Error deleting task:', error)
+      }
+    }
+  }
+
   const handleSaveTask = async (taskData: any) => {
-    await addTask({
-      title: taskData.title,
-      description: taskData.description,
-      status: taskData.status || 'planning',
-      assignee_id: taskData.assignee_id,
-      due_date: taskData.dueDate,
-      priority: taskData.priority,
-      region: taskData.region,
-      progress: 0
-    })
+    if (editingTask) {
+      // Editar tarea existente
+      await updateTask(editingTask.id, {
+        title: taskData.title,
+        description: taskData.description,
+        status: taskData.status,
+        assignee_id: parseInt(taskData.assignee),
+        due_date: taskData.dueDate,
+        priority: taskData.priority,
+        region: taskData.region,
+        story_id: taskData.story_id
+      })
+    } else {
+      // Crear nueva tarea
+      await addTask({
+        title: taskData.title,
+        description: taskData.description,
+        status: taskData.status || 'planning',
+        assignee_id: parseInt(taskData.assignee),
+        due_date: taskData.dueDate,
+        priority: taskData.priority,
+        region: taskData.region,
+        story_id: taskData.story_id,
+        progress: 0
+      })
+    }
     setIsModalOpen(false)
+    setEditingTask(null)
+  }
+
+  const handleNewTask = () => {
+    setEditingTask(null)
+    setIsModalOpen(true)
   }
 
   const getTasksByStatus = (status: string) => {
@@ -69,7 +111,7 @@ const KanbanBoard = () => {
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-semibold text-gray-900">Tablero Kanban EMx</h2>
         <button 
-          onClick={() => setIsModalOpen(true)}
+          onClick={handleNewTask}
           className="btn-primary flex items-center gap-2"
         >
           <Plus size={16} />
@@ -79,8 +121,8 @@ const KanbanBoard = () => {
 
       <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
         <p className="text-sm text-green-800">
-          ✨ <strong>Datos Reales EMx:</strong> Usa las flechas ← → para mover tareas entre estados. 
-          Haz clic en 💬 para comentarios. Total: {tasks.length} tareas del proyecto.
+          🎯 <strong>CRUD Completo:</strong> Crea, edita y elimina tareas. Usa ← → para mover entre estados. 
+          Haz clic en 💬 para comentarios. ✏️ para editar, 🗑️ para eliminar.
         </p>
       </div>
 
@@ -101,14 +143,42 @@ const KanbanBoard = () => {
               {getTasksByStatus(column.id).map((task) => (
                 <div
                   key={task.id}
-                  className={`bg-white rounded-lg p-4 shadow-sm border-l-4 ${priorityColors[task.priority]} hover:shadow-md transition-shadow`}
+                  className={`bg-white rounded-lg p-4 shadow-sm border-l-4 ${priorityColors[task.priority]} hover:shadow-md transition-shadow group`}
                 >
-                  <h4 className="font-medium text-gray-900 mb-2 text-sm">
-                    {task.title}
-                  </h4>
+                  {/* Header con título y acciones */}
+                  <div className="flex items-start justify-between mb-2">
+                    <h4 className="font-medium text-gray-900 text-sm flex-1 pr-2">
+                      {task.title}
+                    </h4>
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={(e) => handleEditTask(task, e)}
+                        className="p-1 hover:bg-blue-100 rounded"
+                        title="Editar tarea"
+                      >
+                        <Edit size={12} className="text-blue-600" />
+                      </button>
+                      <button
+                        onClick={(e) => handleDeleteTask(task, e)}
+                        className="p-1 hover:bg-red-100 rounded"
+                        title="Eliminar tarea"
+                      >
+                        <Trash2 size={12} className="text-red-600" />
+                      </button>
+                    </div>
+                  </div>
+
                   <p className="text-xs text-gray-600 mb-3 line-clamp-2">
                     {task.description}
                   </p>
+
+                  {/* Historia asociada */}
+                  {task.story_title && (
+                    <div className="flex items-center gap-1 mb-2 px-2 py-1 bg-primary-50 text-primary-700 rounded text-xs">
+                      <BookOpen size={10} />
+                      <span className="truncate">{task.story_title}</span>
+                    </div>
+                  )}
 
                   {/* Progress bar */}
                   {task.progress !== undefined && (
@@ -196,6 +266,7 @@ const KanbanBoard = () => {
       />
 
       <TaskModal
+        task={editingTask}
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSave={handleSaveTask}
