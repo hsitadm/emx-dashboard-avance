@@ -36,9 +36,15 @@ class ApiService {
   }
 
   async createTask(taskData) {
+    // Convertir story_id a número si existe
+    const processedData = {
+      ...taskData,
+      story_id: taskData.story_id ? parseInt(taskData.story_id) : undefined
+    }
+    
     return this.request('/tasks', {
       method: 'POST',
-      body: JSON.stringify(taskData),
+      body: JSON.stringify(processedData),
     })
   }
 
