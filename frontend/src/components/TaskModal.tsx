@@ -28,13 +28,30 @@ const TaskModal = ({ task, isOpen, onClose, onSave }: TaskModalProps) => {
     title: task?.title || '',
     description: task?.description || '',
     status: task?.status || 'planning',
-    assignee_id: task?.assignee || '',
-    due_date: task?.dueDate || '',
+    assignee_id: task?.assignee_id || '',
+    due_date: task?.due_date || '',
     priority: task?.priority || 'medium',
     region: task?.region || 'TODAS',
     story_id: task?.story_id || '',
     progress: task?.progress || 0
   })
+
+  // Actualizar formData cuando cambie la tarea
+  useEffect(() => {
+    if (task) {
+      setFormData({
+        title: task.title || '',
+        description: task.description || '',
+        status: task.status || 'planning',
+        assignee_id: task.assignee_id || '',
+        due_date: task.due_date || '',
+        priority: task.priority || 'medium',
+        region: task.region || 'TODAS',
+        story_id: task.story_id?.toString() || '',
+        progress: task.progress || 0
+      })
+    }
+  }, [task])
 
   useEffect(() => {
     if (isOpen) {
@@ -83,8 +100,8 @@ const TaskModal = ({ task, isOpen, onClose, onSave }: TaskModalProps) => {
       title: formData.title,
       description: formData.description,
       status: formData.status,
-      assignee: formData.assignee_id,
-      dueDate: formData.due_date,
+      assignee_id: formData.assignee_id,
+      due_date: formData.due_date,
       priority: formData.priority,
       region: formData.region,
       story_id: formData.story_id,
