@@ -136,22 +136,6 @@ const TaskBoard = () => {
                   )}
                 </div>
                 <p className="text-sm text-gray-600 mb-2">{task.description}</p>
-                
-                {/* Progress bar */}
-                {task.progress !== undefined && (
-                  <div className="mb-2">
-                    <div className="flex justify-between text-xs text-gray-500 mb-1">
-                      <span>Progreso</span>
-                      <span>{task.progress}%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className="bg-primary-600 h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${task.progress}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                )}
               </div>
               <div className="flex items-center gap-2">
                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusConfig[task.status as keyof typeof statusConfig].color}`}>

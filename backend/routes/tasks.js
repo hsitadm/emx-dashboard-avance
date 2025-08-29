@@ -80,6 +80,9 @@ router.post('/', async (req, res) => {
       WHERE t.id = ?
     `, [result.lastID])
     
+    // Actualizar progreso de la historia
+    await updateStoryProgress(story_id)
+    
     res.status(201).json(task.rows[0])
   } catch (error) {
     console.error('Error creating task:', error)
@@ -120,10 +123,36 @@ router.put('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Task not found' })
     }
 
+    // Actualizar progreso de la historia
+    if (story_id) {
+      await updateStoryProgress(story_id)
+    }
+
     res.json(result.rows[0])
   } catch (error) {
     console.error('Error updating task:', error)
     res.status(500).json({ error: 'Failed to update task' })
+  }
+}
+
+// Función para calcular progreso de historia basado en tareas
+async function updateStoryProgress(storyId) {
+  try {
+    const tasks = await db.query('SELECT progress FROM tasks WHERE story_id = ?', [storyId])
+    
+    if (tasks.rows.length === 0) {
+      return 0
+    }
+    
+    const totalProgress = tasks.rows.reduce((sum, task) => sum + (task.progress || 0), 0)
+    const averageProgress = Math.round(totalProgress / tasks.rows.length)
+    
+    await db.run('UPDATE stories SET progress = ? WHERE id = ?', [averageProgress, storyId])
+    
+    return averageProgress
+  } catch (error) {
+    console.error('Error updating story progress:', error)
+    return 0
   }
 })
 
