@@ -55,16 +55,20 @@ router.get('/', async (req, res) => {
 // POST /api/tasks - Crear nueva tarea
 router.post('/', async (req, res) => {
   try {
-    const { title, description, status, assignee_id, due_date, priority, region, story_id } = req.body
+    let { title, description, status, assignee_id, due_date, priority, region, story_id } = req.body
 
     if (!story_id) {
       return res.status(400).json({ error: 'story_id is required' })
     }
 
+    // Auto-establecer progreso basado en status
+    const finalStatus = status || 'planning'
+    const progress = finalStatus === 'completed' ? 100 : 0
+
     const result = await db.run(
-      `INSERT INTO tasks (title, description, status, assignee_id, due_date, priority, region, story_id) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [title, description, status || 'planning', assignee_id, due_date, priority || 'medium', region, story_id]
+      `INSERT INTO tasks (title, description, status, assignee_id, due_date, priority, region, story_id, progress) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [title, description, finalStatus, assignee_id, due_date, priority || 'medium', region, story_id, progress]
     )
 
     // Get the created task with story info
@@ -87,7 +91,14 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params
-    const { title, description, status, assignee_id, due_date, priority, region, progress, story_id } = req.body
+    let { title, description, status, assignee_id, due_date, priority, region, progress, story_id } = req.body
+
+    // Auto-actualizar progreso basado en status
+    if (status === 'completed') {
+      progress = 100
+    } else if (status === 'planning') {
+      progress = progress || 0
+    }
 
     await db.run(
       `UPDATE tasks 
