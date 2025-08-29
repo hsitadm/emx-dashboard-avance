@@ -154,7 +154,7 @@ async function updateStoryProgress(storyId) {
     console.error('Error updating story progress:', error)
     return 0
   }
-})
+}
 
 // DELETE /api/tasks/:id - Eliminar tarea
 router.delete('/:id', async (req, res) => {
