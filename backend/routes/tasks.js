@@ -133,7 +133,7 @@ router.put('/:id', async (req, res) => {
     console.error('Error updating task:', error)
     res.status(500).json({ error: 'Failed to update task' })
   }
-}
+})
 
 // Función para calcular progreso de historia basado en tareas
 async function updateStoryProgress(storyId) {
