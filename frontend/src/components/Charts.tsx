@@ -26,14 +26,17 @@ const Charts = () => {
 
       console.log('=== CHART DATA DEBUG ===')
       console.log('Total tasks loaded:', tasks?.length || 0)
-      console.log('Tasks sample:', tasks?.slice(0, 3))
-      console.log('Stories loaded:', stories?.length || 0)
 
-      // Procesar datos por región - Con debug mejorado
+      // Procesar datos por región - Con debug detallado
       const regionStats = {}
       
       if (tasks && tasks.length > 0) {
-        console.log('Processing tasks by region...')
+        console.log('Processing all tasks by region...')
+        
+        // Mostrar todas las regiones únicas primero
+        const uniqueRegions = [...new Set(tasks.map(task => task.region || 'Sin región'))]
+        console.log('Unique regions found:', uniqueRegions)
+        
         tasks.forEach((task: any, index: number) => {
           const region = task.region || 'Sin región'
           if (!regionStats[region]) {
@@ -45,18 +48,17 @@ const Charts = () => {
           } else {
             regionStats[region].pending++
           }
-          
-          // Debug primeras 5 tareas
-          if (index < 5) {
-            console.log(`Task ${index + 1}: "${task.title}" - Region: ${task.region} - Status: ${task.status}`)
-          }
         })
         
         const regionArray = Object.values(regionStats)
-        console.log('Final region stats:', regionArray)
+        console.log('=== DETAILED REGION BREAKDOWN ===')
+        regionArray.forEach(region => {
+          console.log(`${region.name}: ${region.total} total (${region.completed} completadas, ${region.pending} pendientes)`)
+        })
+        
         setRegionData(regionArray)
       } else {
-        console.log('No tasks found, using fallback data')
+        console.log('No tasks found')
         setRegionData([])
       }
 
@@ -146,6 +148,23 @@ const Charts = () => {
           Actualizar Datos
         </button>
       </div>
+
+      {/* Debug info visible */}
+      {regionData.length > 0 && (
+        <div className="card bg-blue-50 border-blue-200">
+          <h4 className="text-sm font-medium text-blue-900 mb-2">📊 Distribución Actual por Región:</h4>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs">
+            {regionData.map(region => (
+              <div key={region.name} className="bg-white p-2 rounded">
+                <div className="font-medium text-blue-800">{region.name}</div>
+                <div className="text-blue-600">
+                  {region.total} total ({region.completed} ✅, {region.pending} ⏳)
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Gráfico de Barras - Tareas por Región */}
