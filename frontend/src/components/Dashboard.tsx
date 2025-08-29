@@ -63,14 +63,18 @@ const Dashboard = () => {
         {/* Content based on active view */}
         {activeView === 'overview' && (
           <div className="space-y-8">
+            {/* Historias como nivel principal */}
             <ProgressOverview />
             
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-2">
-                <TaskBoard />
-              </div>
-              <div>
+            {/* Detalles secundarios */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="card">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Hitos del Proyecto</h3>
                 <MilestoneTimeline />
+              </div>
+              <div className="card">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Tareas Recientes</h3>
+                <TaskBoard />
               </div>
             </div>
           </div>
