@@ -9,7 +9,7 @@ import KanbanBoard from './KanbanBoard'
 import CalendarView from './CalendarView'
 import Gamification from './Gamification'
 import StoriesView from './StoriesView'
-import { LayoutGrid, Calendar, Kanban, BarChart3, Trophy, BookOpen } from 'lucide-react'
+import { LayoutGrid, Calendar, Kanban, BarChart3, Trophy, BookOpen, CheckSquare } from 'lucide-react'
 
 const Dashboard = () => {
   const user = useStore(state => state.user)
@@ -18,6 +18,7 @@ const Dashboard = () => {
   const views = [
     { id: 'overview', label: 'Resumen', icon: LayoutGrid },
     { id: 'stories', label: 'Historias', icon: BookOpen },
+    { id: 'tasks', label: 'Tareas', icon: CheckSquare },
     { id: 'kanban', label: 'Kanban', icon: Kanban },
     { id: 'calendar', label: 'Calendario', icon: Calendar },
     { id: 'analytics', label: 'Análisis', icon: BarChart3 },
@@ -63,24 +64,20 @@ const Dashboard = () => {
         {/* Content based on active view */}
         {activeView === 'overview' && (
           <div className="space-y-8">
-            {/* Historias como nivel principal */}
+            {/* Solo historias y métricas en el resumen */}
             <ProgressOverview />
             
-            {/* Detalles secundarios */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <div className="card">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Hitos del Proyecto</h3>
-                <MilestoneTimeline />
-              </div>
-              <div className="card">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Tareas Recientes</h3>
-                <TaskBoard />
-              </div>
+            {/* Hitos como información complementaria */}
+            <div className="card">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Hitos del Proyecto</h3>
+              <MilestoneTimeline />
             </div>
           </div>
         )}
 
         {activeView === 'stories' && <StoriesView />}
+
+        {activeView === 'tasks' && <TaskBoard />}
 
         {activeView === 'kanban' && <KanbanBoard />}
 

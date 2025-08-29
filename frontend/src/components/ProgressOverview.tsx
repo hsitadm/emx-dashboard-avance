@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { TrendingUp, Users, CheckCircle, Clock, BookOpen, Target, ArrowRight } from 'lucide-react'
+import { TrendingUp, Users, CheckCircle, Clock, BookOpen, Target } from 'lucide-react'
 import apiService from '../services/api.js'
 
 const ProgressOverview = () => {
@@ -93,7 +93,7 @@ const ProgressOverview = () => {
     <div className="space-y-6">
       {/* Métricas Principales */}
       <div className="card">
-        <h2 className="text-xl font-semibold text-gray-900 mb-6">Resumen del Proyecto EMx</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-6">Resumen Ejecutivo del Proyecto EMx</h2>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {metricsCards.map((metric, index) => (
@@ -127,90 +127,89 @@ const ProgressOverview = () => {
             ></div>
           </div>
         </div>
+
+        <div className="text-center">
+          <p className="text-sm text-gray-600">
+            El progreso se calcula en base al avance de las historias principales del proyecto
+          </p>
+        </div>
       </div>
 
-      {/* Historias Principales */}
+      {/* Historias Principales - Vista Resumida */}
       <div className="card">
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
             <BookOpen className="w-5 h-5 text-primary-600" />
-            Historias del Proyecto
+            Estado de las Historias
           </h3>
-          <span className="text-sm text-gray-500">Nivel más alto de organización</span>
+          <span className="text-sm text-gray-500">Vista ejecutiva</span>
         </div>
         
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {stories.map((story, index) => (
             <div key={story.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h4 className="font-medium text-gray-900">{story.title}</h4>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(story.status)}`}>
-                      {story.status === 'completed' ? 'Completada' : 
-                       story.status === 'in-progress' ? 'En Progreso' : 'Activa'}
-                    </span>
-                    {story.status === 'completed' && (
-                      <Target className="w-4 h-4 text-green-600" title="Convertida en hito" />
-                    )}
-                  </div>
-                  <p className="text-sm text-gray-600 mb-3">{story.description}</p>
-                  
-                  {/* Barra de progreso de la historia */}
-                  <div className="mb-3">
-                    <div className="flex justify-between text-xs text-gray-500 mb-1">
-                      <span>Progreso de la historia</span>
-                      <span>{story.progress || 0}%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className={`h-2 rounded-full transition-all duration-300 ${
-                          story.status === 'completed' ? 'bg-green-500' : 'bg-primary-600'
-                        }`}
-                        style={{ width: `${story.progress || 0}%` }}
-                      ></div>
-                    </div>
-                  </div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <h4 className="font-medium text-gray-900">{story.title}</h4>
+                  {story.status === 'completed' && (
+                    <Target className="w-4 h-4 text-green-600" title="Convertida en hito" />
+                  )}
+                </div>
+                <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(story.status)}`}>
+                  {story.status === 'completed' ? 'Completada' : 
+                   story.status === 'in-progress' ? 'En Progreso' : 'Activa'}
+                </span>
+              </div>
+              
+              {/* Barra de progreso compacta */}
+              <div className="mb-3">
+                <div className="flex justify-between text-xs text-gray-500 mb-1">
+                  <span>{story.completed_tasks || 0}/{story.task_count || 0} tareas</span>
+                  <span>{story.progress || 0}%</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    className={`h-2 rounded-full transition-all duration-300 ${
+                      story.status === 'completed' ? 'bg-green-500' : 'bg-primary-600'
+                    }`}
+                    style={{ width: `${story.progress || 0}%` }}
+                  ></div>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between text-sm text-gray-500">
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-1">
-                    <Users size={14} />
-                    <span>{story.assignee_name || 'Sin asignar'}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <CheckCircle size={14} />
-                    <span>{story.completed_tasks || 0}/{story.task_count || 0} tareas</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Clock size={14} />
-                    <span>{story.target_date ? new Date(story.target_date).toLocaleDateString() : 'Sin fecha'}</span>
-                  </div>
-                  <div className={`flex items-center gap-1 ${getPriorityColor(story.priority)}`}>
-                    <span>●</span>
-                    <span className="capitalize">{story.priority}</span>
-                  </div>
+              <div className="flex items-center justify-between text-xs text-gray-500">
+                <div className="flex items-center gap-2">
+                  <Users size={12} />
+                  <span>{story.assignee_name || 'Sin asignar'}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs bg-gray-100 px-2 py-1 rounded">
-                    {story.region}
-                  </span>
-                  <ArrowRight size={14} className="text-gray-400" />
+                  <Clock size={12} />
+                  <span>{story.target_date ? new Date(story.target_date).toLocaleDateString() : 'Sin fecha'}</span>
+                </div>
+                <div className={`flex items-center gap-1 ${getPriorityColor(story.priority)}`}>
+                  <span>●</span>
+                  <span className="capitalize">{story.priority}</span>
                 </div>
               </div>
             </div>
           ))}
 
           {stories.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
+            <div className="col-span-2 text-center py-8 text-gray-500">
               <BookOpen size={48} className="mx-auto mb-4 text-gray-300" />
               <p>No hay historias disponibles</p>
               <p className="text-sm">Ve a la pestaña Historias para crear la primera</p>
             </div>
           )}
         </div>
+
+        {stories.length > 0 && (
+          <div className="mt-6 pt-4 border-t border-gray-200 text-center">
+            <p className="text-sm text-gray-600">
+              Para gestión detallada de historias y tareas, utiliza las pestañas correspondientes
+            </p>
+          </div>
+        )}
       </div>
     </div>
   )
