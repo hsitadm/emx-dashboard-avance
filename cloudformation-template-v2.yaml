@@ -1,0 +1,339 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'EMx Dashboard - Deployment profesional con Node.js 18'
+
+Parameters:
+  KeyPairName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: Nombre del Key Pair para acceso SSH
+    
+  AllowedCIDR:
+    Type: String
+    Default: '0.0.0.0/0'
+    Description: CIDR de IPs permitidas (ej. 192.168.1.0/24 para tu oficina)
+    
+  InstanceType:
+    Type: String
+    Default: t3.small
+    AllowedValues: [t3.micro, t3.small, t3.medium]
+    Description: Tipo de instancia EC2
+
+Resources:
+  # VPC y Networking (igual que antes)
+  EMxVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: EMx-Dashboard-VPC
+
+  EMxSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref EMxVPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: EMx-Dashboard-Subnet
+
+  EMxInternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: EMx-Dashboard-IGW
+
+  EMxVPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref EMxVPC
+      InternetGatewayId: !Ref EMxInternetGateway
+
+  EMxRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref EMxVPC
+      Tags:
+        - Key: Name
+          Value: EMx-Dashboard-RouteTable
+
+  EMxRoute:
+    Type: AWS::EC2::Route
+    DependsOn: EMxVPCGatewayAttachment
+    Properties:
+      RouteTableId: !Ref EMxRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref EMxInternetGateway
+
+  EMxSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref EMxSubnet
+      RouteTableId: !Ref EMxRouteTable
+
+  # Security Groups actualizados
+  EMxWebSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group para EMx Dashboard - Acceso controlado
+      VpcId: !Ref EMxVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: !Ref AllowedCIDR
+          Description: HTTP desde IPs permitidas
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: !Ref AllowedCIDR
+          Description: HTTPS desde IPs permitidas
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref AllowedCIDR
+          Description: SSH para administracion
+        - IpProtocol: tcp
+          FromPort: 8080
+          ToPort: 8080
+          CidrIp: 0.0.0.0/0
+          Description: Webhook para GitHub
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+          Description: Todo el trafico saliente
+      Tags:
+        - Key: Name
+          Value: EMx-Dashboard-SecurityGroup
+
+  # IAM Role para la instancia
+  EMxInstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
+      Tags:
+        - Key: Name
+          Value: EMx-Dashboard-InstanceRole
+
+  EMxInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref EMxInstanceRole
+
+  # Instancia EC2 con Amazon Linux 2023
+  EMxInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-0230bd60aa48260c6  # Amazon Linux 2023 (latest)
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyPairName
+      IamInstanceProfile: !Ref EMxInstanceProfile
+      SubnetId: !Ref EMxSubnet
+      SecurityGroupIds:
+        - !Ref EMxWebSecurityGroup
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          dnf update -y
+          
+          # Instalar Node.js 18 (compatible con Amazon Linux 2023)
+          dnf install -y nodejs npm git nginx
+          
+          # Verificar versión de Node.js
+          node --version
+          npm --version
+          
+          # Instalar PM2 para gestión de procesos
+          npm install -g pm2
+          
+          # Crear usuario para la aplicación
+          useradd -m -s /bin/bash emxapp || echo "Usuario ya existe"
+          
+          # Crear directorios necesarios
+          mkdir -p /opt/emx-deployment
+          mkdir -p /opt/backups
+          mkdir -p /var/www/emx-dashboard
+          chown -R ec2-user:ec2-user /opt/emx-deployment
+          chown -R ec2-user:ec2-user /opt/backups
+          
+          # Crear script de deployment profesional
+          cat > /opt/emx-deployment/deploy.sh << 'EOFSCRIPT'
+          #!/bin/bash
+          set -e
+          
+          REPO_URL="https://github.com/hsitadm/emx-dashboard-avance.git"
+          DEPLOY_DIR="/opt/emx-dashboard"
+          BACKUP_DIR="/opt/backups"
+          WEB_DIR="/var/www/emx-dashboard"
+          SERVICE_NAME="emx-backend"
+          
+          GREEN='\033[0;32m'
+          RED='\033[0;31m'
+          NC='\033[0m'
+          
+          log() { echo -e "${GREEN}[DEPLOY]${NC} $1"; }
+          error() { echo -e "${RED}[ERROR]${NC} $1"; exit 1; }
+          
+          # Backup
+          log "Creando backup..."
+          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+          mkdir -p $BACKUP_DIR
+          [ -d $DEPLOY_DIR ] && cp -r $DEPLOY_DIR $BACKUP_DIR/emx-dashboard_$TIMESTAMP
+          [ -f $DEPLOY_DIR/backend/database.sqlite ] && cp $DEPLOY_DIR/backend/database.sqlite $BACKUP_DIR/database_$TIMESTAMP.sqlite
+          
+          # Clonar/actualizar repositorio
+          log "Actualizando repositorio..."
+          if [ -d $DEPLOY_DIR ]; then
+              cd $DEPLOY_DIR && git fetch origin && git reset --hard origin/main
+          else
+              git clone $REPO_URL $DEPLOY_DIR
+          fi
+          chown -R ec2-user:ec2-user $DEPLOY_DIR
+          
+          # Instalar dependencias backend
+          log "Instalando dependencias backend..."
+          cd $DEPLOY_DIR/backend && npm ci --omit=dev
+          
+          # Instalar dependencias frontend
+          log "Instalando dependencias frontend..."
+          cd $DEPLOY_DIR/frontend && npm ci
+          
+          # Build frontend
+          log "Construyendo frontend..."
+          echo "VITE_API_URL=/api" > .env.production
+          npm run build
+          
+          # Restaurar base de datos
+          LATEST_DB=$(ls -t $BACKUP_DIR/database_*.sqlite 2>/dev/null | head -n1)
+          [ -n "$LATEST_DB" ] && cp "$LATEST_DB" $DEPLOY_DIR/backend/database.sqlite
+          
+          # Desplegar frontend
+          log "Desplegando frontend..."
+          rm -rf $WEB_DIR/*
+          cp -r $DEPLOY_DIR/frontend/dist/* $WEB_DIR/
+          
+          # Reiniciar servicios
+          log "Reiniciando servicios..."
+          pm2 stop $SERVICE_NAME 2>/dev/null || true
+          pm2 delete $SERVICE_NAME 2>/dev/null || true
+          cd $DEPLOY_DIR/backend && pm2 start server.js --name $SERVICE_NAME
+          pm2 save
+          
+          # Verificar
+          sleep 5
+          curl -f http://localhost:3001/api/health > /dev/null || error "API no responde"
+          curl -f http://localhost/ > /dev/null || error "Frontend no responde"
+          
+          log "Deployment completado exitosamente"
+          EOFSCRIPT
+          
+          chmod +x /opt/emx-deployment/deploy.sh
+          
+          # Configurar Nginx
+          cat > /etc/nginx/conf.d/emx-dashboard.conf << 'EOF'
+          server {
+              listen 80;
+              server_name _;
+              
+              # Security headers
+              add_header X-Frame-Options DENY;
+              add_header X-Content-Type-Options nosniff;
+              add_header X-XSS-Protection "1; mode=block";
+              add_header Referrer-Policy strict-origin-when-cross-origin;
+              
+              # Frontend
+              location / {
+                  root /var/www/emx-dashboard;
+                  try_files $uri $uri/ /index.html;
+              }
+              
+              # Backend API
+              location /api/ {
+                  proxy_pass http://localhost:3001/api/;
+                  proxy_http_version 1.1;
+                  proxy_set_header Upgrade $http_upgrade;
+                  proxy_set_header Connection 'upgrade';
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto $scheme;
+                  proxy_cache_bypass $http_upgrade;
+              }
+          }
+          
+          # Webhook server
+          server {
+              listen 8080;
+              server_name _;
+              
+              location /webhook {
+                  proxy_pass http://localhost:9000/webhook;
+                  proxy_http_version 1.1;
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+              }
+          }
+          EOF
+          
+          # Iniciar servicios
+          systemctl enable nginx
+          systemctl start nginx
+          
+          # Ejecutar deployment inicial
+          sudo -u ec2-user /opt/emx-deployment/deploy.sh
+          
+          # Log de instalación
+          echo "EMx Dashboard instalado correctamente - $(date)" >> /var/log/emx-install.log
+          
+      Tags:
+        - Key: Name
+          Value: EMx-Dashboard-Server-v2
+        - Key: Environment
+          Value: Production
+        - Key: Project
+          Value: EMx-Transition
+
+  # Elastic IP para IP fija
+  EMxElasticIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      InstanceId: !Ref EMxInstance
+      Tags:
+        - Key: Name
+          Value: EMx-Dashboard-EIP
+
+Outputs:
+  DashboardURL:
+    Description: URL del Dashboard EMx
+    Value: !Sub 'http://${EMxElasticIP}'
+    
+  WebhookURL:
+    Description: URL del Webhook para GitHub
+    Value: !Sub 'http://${EMxElasticIP}:8080/webhook'
+    
+  SSHCommand:
+    Description: Comando para conectar via SSH
+    Value: !Sub 'ssh -i ${KeyPairName}.pem ec2-user@${EMxElasticIP}'
+    
+  InstanceId:
+    Description: ID de la instancia EC2
+    Value: !Ref EMxInstance
+    
+  ElasticIP:
+    Description: IP publica fija
+    Value: !Ref EMxElasticIP
