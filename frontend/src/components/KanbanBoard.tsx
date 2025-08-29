@@ -34,7 +34,6 @@ const KanbanBoard = () => {
 
     await updateTask(taskId, { ...task, status: newStatus })
   }
-  }
 
   const handleEditTask = (task: any, e: React.MouseEvent) => {
     e.stopPropagation()
