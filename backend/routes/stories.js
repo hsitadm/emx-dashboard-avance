@@ -3,6 +3,27 @@ import db from '../config/database.js'
 
 const router = express.Router()
 
+// Función para calcular progreso de historia basado en tareas
+async function updateStoryProgress(storyId) {
+  try {
+    const tasks = await db.query('SELECT progress FROM tasks WHERE story_id = ?', [storyId])
+    
+    if (tasks.rows.length === 0) {
+      return 0
+    }
+    
+    const totalProgress = tasks.rows.reduce((sum, task) => sum + (task.progress || 0), 0)
+    const averageProgress = Math.round(totalProgress / tasks.rows.length)
+    
+    await db.run('UPDATE stories SET progress = ? WHERE id = ?', [averageProgress, storyId])
+    
+    return averageProgress
+  } catch (error) {
+    console.error('Error updating story progress:', error)
+    return 0
+  }
+}
+
 // GET /api/stories - Obtener todas las historias con sus tareas
 router.get('/', async (req, res) => {
   try {
