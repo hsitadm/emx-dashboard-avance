@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://54.174.186.199:3001/api';
+const API_BASE_URL = 'http://localhost:3001/api';
 
 export const api = {
   // Tasks
