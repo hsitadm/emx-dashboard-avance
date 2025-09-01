@@ -1,11 +1,11 @@
 import express from 'express'
 import db from '../config/database.js'
-import { authenticateUser } from '../middleware/auth.js'
+// import { authenticateUser } from '../middleware/auth.js'
 
 const router = express.Router()
 
-// Aplicar autenticación a todas las rutas
-router.use(authenticateUser)
+// Temporalmente deshabilitado para desarrollo
+// router.use(authenticateUser)
 
 // GET /api/tasks - Obtener todas las tareas
 router.get('/', async (req, res) => {
