@@ -321,32 +321,109 @@ const StoriesView = () => {
                     <span>{selectedStory.target_date ? new Date(selectedStory.target_date).toLocaleDateString() : 'Sin fecha'}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Progreso:</span>
-                    <span>{selectedStory.progress || 0}%</span>
+                    <span className="text-gray-500">Progreso general:</span>
+                    <span className="font-medium">{selectedStory.progress || 0}%</span>
                   </div>
+                  
+                  {/* Resumen de tareas */}
+                  {storyTasks.length > 0 && (
+                    <div className="pt-2 border-t border-gray-200">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-gray-500">Resumen de tareas:</span>
+                        <span className="text-xs text-gray-400">
+                          {storyTasks.filter(t => t.status === 'completed').length} de {storyTasks.length} completadas
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 text-xs">
+                        <div className="text-center p-2 bg-green-50 rounded">
+                          <div className="font-medium text-green-700">
+                            {storyTasks.filter(t => t.status === 'completed').length}
+                          </div>
+                          <div className="text-green-600">Completadas</div>
+                        </div>
+                        <div className="text-center p-2 bg-blue-50 rounded">
+                          <div className="font-medium text-blue-700">
+                            {storyTasks.filter(t => t.status === 'in-progress').length}
+                          </div>
+                          <div className="text-blue-600">En Progreso</div>
+                        </div>
+                        <div className="text-center p-2 bg-gray-50 rounded">
+                          <div className="font-medium text-gray-700">
+                            {storyTasks.filter(t => t.status === 'pending').length}
+                          </div>
+                          <div className="text-gray-600">Pendientes</div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
               <div className="card">
                 <h4 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
                   <Clock className="w-4 h-4" />
-                  Tareas ({storyTasks.length})
+                  Tareas Asociadas ({storyTasks.length})
                 </h4>
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {storyTasks.map((task) => (
-                    <div key={task.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded text-sm">
-                      <div className={`w-2 h-2 rounded-full ${
-                        task.status === 'completed' ? 'bg-green-500' : 
-                        task.status === 'in-progress' ? 'bg-blue-500' : 'bg-gray-400'
-                      }`}></div>
-                      <span className="flex-1">{task.title}</span>
-                      <span className="text-xs text-gray-500">{task.progress || 0}%</span>
+                    <div key={task.id} className="border border-gray-200 rounded-lg p-3 bg-gray-50">
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-3 h-3 rounded-full ${
+                            task.status === 'completed' ? 'bg-green-500' : 
+                            task.status === 'in-progress' ? 'bg-blue-500' : 'bg-gray-400'
+                          }`}></div>
+                          <h5 className="font-medium text-gray-900 text-sm">{task.title}</h5>
+                        </div>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          task.status === 'completed' ? 'bg-green-100 text-green-800' :
+                          task.status === 'in-progress' ? 'bg-blue-100 text-blue-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {task.status === 'completed' ? 'Completada' :
+                           task.status === 'in-progress' ? 'En Progreso' : 'Pendiente'}
+                        </span>
+                      </div>
+                      
+                      {task.description && (
+                        <p className="text-xs text-gray-600 mb-2">{task.description}</p>
+                      )}
+                      
+                      <div className="flex items-center justify-between text-xs text-gray-500">
+                        <div className="flex items-center gap-3">
+                          <span>👤 {task.assignee_name || 'Sin asignar'}</span>
+                          {task.due_date && (
+                            <span>📅 {new Date(task.due_date).toLocaleDateString()}</span>
+                          )}
+                          <span className={`${
+                            task.priority === 'high' ? 'text-red-600' :
+                            task.priority === 'medium' ? 'text-yellow-600' : 'text-green-600'
+                          }`}>
+                            ● {task.priority === 'high' ? 'Alta' : task.priority === 'medium' ? 'Media' : 'Baja'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-12 bg-gray-200 rounded-full h-1.5">
+                            <div 
+                              className={`h-1.5 rounded-full transition-all duration-300 ${
+                                task.status === 'completed' ? 'bg-green-500' : 'bg-blue-500'
+                              }`}
+                              style={{ width: `${task.progress || 0}%` }}
+                            ></div>
+                          </div>
+                          <span className="font-medium">{task.progress || 0}%</span>
+                        </div>
+                      </div>
                     </div>
                   ))}
                   {storyTasks.length === 0 && (
-                    <p className="text-gray-500 text-sm text-center py-4">
-                      No hay tareas asignadas a esta historia
-                    </p>
+                    <div className="text-center py-6 text-gray-500">
+                      <Clock className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                      <p className="text-sm">No hay tareas asignadas a esta historia</p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        Las tareas se pueden asignar desde la vista de Tareas
+                      </p>
+                    </div>
                   )}
                 </div>
               </div>
