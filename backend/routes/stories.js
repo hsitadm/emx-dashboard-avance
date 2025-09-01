@@ -1,7 +1,11 @@
 import express from 'express'
 import db from '../config/database.js'
+import { authenticateUser } from '../middleware/auth.js'
 
 const router = express.Router()
+
+// Aplicar autenticación a todas las rutas
+router.use(authenticateUser)
 
 // Función para calcular progreso de historia basado en tareas
 async function updateStoryProgress(storyId) {

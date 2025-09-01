@@ -1,7 +1,11 @@
 import express from 'express'
 import db from '../config/database.js'
+import { authenticateUser } from '../middleware/auth.js'
 
 const router = express.Router()
+
+// Aplicar autenticación a todas las rutas
+router.use(authenticateUser)
 
 // GET /api/milestones - Obtener todos los milestones
 router.get('/', async (req, res) => {
@@ -19,10 +23,24 @@ router.post('/', async (req, res) => {
   try {
     const { title, description, due_date, status, progress, story_id, region } = req.body
 
+    // Validación básica
+    if (!title || title.trim().length === 0) {
+      return res.status(400).json({ error: 'El título es requerido' })
+    }
+    if (!due_date) {
+      return res.status(400).json({ error: 'La fecha límite es requerida' })
+    }
+    if (title.length > 255) {
+      return res.status(400).json({ error: 'El título no puede exceder 255 caracteres' })
+    }
+    if (description && description.length > 1000) {
+      return res.status(400).json({ error: 'La descripción no puede exceder 1000 caracteres' })
+    }
+
     const result = await db.run(
       `INSERT INTO milestones (title, description, due_date, status, progress, story_id, region) 
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [title, description, due_date, status || 'pending', progress || 0, story_id || null, region || null]
+      [title.trim(), description?.trim(), due_date, status || 'pending', progress || 0, story_id || null, region || null]
     )
 
     const milestone = await db.query('SELECT * FROM milestones WHERE id = ?', [result.lastID])

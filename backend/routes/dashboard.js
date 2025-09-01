@@ -1,7 +1,11 @@
 import express from 'express'
 import db from '../config/database.js'
+import { authenticateUser } from '../middleware/auth.js'
 
 const router = express.Router()
+
+// Aplicar autenticación a todas las rutas
+router.use(authenticateUser)
 
 // GET /api/dashboard/metrics - Obtener métricas del dashboard
 router.get('/metrics', async (req, res) => {
