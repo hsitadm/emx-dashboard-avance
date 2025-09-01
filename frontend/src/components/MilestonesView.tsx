@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Plus, Calendar, Target, Edit, Trash2, CheckCircle, Clock, AlertCircle } from 'lucide-react'
 import apiService from '../services/api.js'
+import CommentsSection from './CommentsSection'
 
 const MilestonesView = () => {
   const [milestones, setMilestones] = useState<any[]>([])
@@ -169,12 +170,19 @@ const MilestonesView = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-4 text-sm text-gray-500">
+            <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
               <div className="flex items-center gap-1">
                 <Calendar size={14} />
                 <span>Fecha límite: {new Date(milestone.due_date).toLocaleDateString()}</span>
               </div>
             </div>
+
+            {/* Comments Section */}
+            <CommentsSection
+              entityType="milestone"
+              entityId={milestone.id}
+              entityTitle={milestone.title}
+            />
           </div>
         ))}
 

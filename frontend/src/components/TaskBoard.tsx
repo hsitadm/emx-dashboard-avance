@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
-import { Plus, User, Calendar, Edit, BookOpen, Trash2, MessageCircle } from 'lucide-react'
+import { Plus, User, Calendar, Edit, BookOpen, Trash2 } from 'lucide-react'
 import { useStore } from '../store/useStore'
 import { useAuthStore } from '../store/authStore'
 import TaskModal from './TaskModal'
 import AdvancedFilters from './AdvancedFilters'
 import ProtectedAction from './ProtectedAction'
+import CommentsSection from './CommentsSection'
 
 const TaskBoard = () => {
   const { tasks, loadTasks, updateTask, addTask, deleteTask } = useStore()
@@ -211,13 +212,12 @@ const TaskBoard = () => {
                 </div>
               )}
 
-              {/* Comments Button */}
-              <div className="pt-2 border-t">
-                <button className="flex items-center space-x-1 text-sm text-gray-600 hover:text-blue-600 transition-colors">
-                  <MessageCircle className="w-4 h-4" />
-                  <span>Comentarios</span>
-                </button>
-              </div>
+              {/* Comments Section */}
+              <CommentsSection
+                entityType="task"
+                entityId={task.id}
+                entityTitle={task.title}
+              />
             </div>
           </div>
         ))}

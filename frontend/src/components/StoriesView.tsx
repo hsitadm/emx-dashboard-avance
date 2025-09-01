@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { BookOpen, Plus, Users, Calendar, Target, CheckCircle, Clock, Edit, Trash2, ArrowRight, X, Save } from 'lucide-react'
 import apiService from '../services/api.js'
+import CommentsSection from './CommentsSection'
 
 const StoriesView = () => {
   const [stories, setStories] = useState<any[]>([])
@@ -273,6 +274,13 @@ const StoriesView = () => {
                   </button>
                 )}
               </div>
+
+              {/* Comments Section */}
+              <CommentsSection
+                entityType="story"
+                entityId={story.id}
+                entityTitle={story.title}
+              />
             </div>
           ))}
 
