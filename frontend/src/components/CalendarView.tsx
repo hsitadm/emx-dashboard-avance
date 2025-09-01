@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react'
 import { ChevronLeft, ChevronRight, Calendar, Plus, X, Save, User, Edit, Trash2, Target } from 'lucide-react'
 import { useStore } from '../store/useStore'
+import { useAuthStore } from '../store/authStore'
 import apiService from '../services/api.js'
+import ProtectedAction from './ProtectedAction'
 
 const CalendarView = () => {
   const { tasks, loadTasks, addTask, updateTask } = useStore()
+  const { canEdit } = useAuthStore()
   const [currentDate, setCurrentDate] = useState(new Date())
   const [view, setView] = useState<'month' | 'week'>('month')
   const [showEventModal, setShowEventModal] = useState(false)
@@ -167,6 +170,8 @@ const CalendarView = () => {
 
   const handleEditEvent = (event: any, e: React.MouseEvent) => {
     e.stopPropagation()
+    if (!canEdit()) return
+    
     setEditingEvent(event)
     setSelectedDate(new Date(event.due_date))
     setShowEventModal(true)
@@ -181,6 +186,8 @@ const CalendarView = () => {
 
   const handleEditMilestone = (milestone: any, e: React.MouseEvent) => {
     e.stopPropagation()
+    if (!canEdit()) return
+    
     setEditingMilestone(milestone)
     setSelectedDate(new Date(milestone.due_date))
     setShowMilestoneModal(true)
@@ -194,6 +201,8 @@ const CalendarView = () => {
 
   const handleDeleteEvent = async (event: any, e: React.MouseEvent) => {
     e.stopPropagation()
+    if (!canEdit()) return
+    
     if (confirm(`¿Estás seguro de eliminar "${event.title}"?`)) {
       try {
         await apiService.request(`/tasks/${event.id}`, { method: 'DELETE' })
@@ -206,6 +215,8 @@ const CalendarView = () => {
 
   const handleDeleteMilestone = async (milestone: any, e: React.MouseEvent) => {
     e.stopPropagation()
+    if (!canEdit()) return
+    
     if (confirm(`¿Estás seguro de eliminar el hito "${milestone.title}"?`)) {
       try {
         await apiService.deleteMilestone(milestone.id)
@@ -366,20 +377,24 @@ const CalendarView = () => {
                         <span className="truncate">{milestone.title}</span>
                       </div>
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={(e) => handleEditMilestone(milestone, e)}
-                          className="p-0.5 hover:bg-blue-300 rounded"
-                          title="Editar hito"
-                        >
-                          <Edit size={8} className="text-blue-700" />
-                        </button>
-                        <button
-                          onClick={(e) => handleDeleteMilestone(milestone, e)}
-                          className="p-0.5 hover:bg-red-200 rounded"
-                          title="Eliminar hito"
-                        >
-                          <Trash2 size={8} className="text-red-600" />
-                        </button>
+                        <ProtectedAction requiredPermission="edit">
+                          <button
+                            onClick={(e) => handleEditMilestone(milestone, e)}
+                            className="p-0.5 hover:bg-blue-300 rounded"
+                            title="Editar hito"
+                          >
+                            <Edit size={8} className="text-blue-700" />
+                          </button>
+                        </ProtectedAction>
+                        <ProtectedAction requiredPermission="edit">
+                          <button
+                            onClick={(e) => handleDeleteMilestone(milestone, e)}
+                            className="p-0.5 hover:bg-red-200 rounded"
+                            title="Eliminar hito"
+                          >
+                            <Trash2 size={8} className="text-red-600" />
+                          </button>
+                        </ProtectedAction>
                       </div>
                     </div>
                   ))}
@@ -394,20 +409,24 @@ const CalendarView = () => {
                         <span className="truncate">{task.title}</span>
                       </div>
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={(e) => handleEditEvent(task, e)}
-                          className="p-0.5 hover:bg-blue-200 rounded"
-                          title="Editar evento"
-                        >
-                          <Edit size={10} className="text-blue-600" />
-                        </button>
-                        <button
-                          onClick={(e) => handleDeleteEvent(task, e)}
-                          className="p-0.5 hover:bg-red-200 rounded"
-                          title="Eliminar evento"
-                        >
-                          <Trash2 size={10} className="text-red-600" />
-                        </button>
+                        <ProtectedAction requiredPermission="edit">
+                          <button
+                            onClick={(e) => handleEditEvent(task, e)}
+                            className="p-0.5 hover:bg-blue-200 rounded"
+                            title="Editar evento"
+                          >
+                            <Edit size={10} className="text-blue-600" />
+                          </button>
+                        </ProtectedAction>
+                        <ProtectedAction requiredPermission="edit">
+                          <button
+                            onClick={(e) => handleDeleteEvent(task, e)}
+                            className="p-0.5 hover:bg-red-200 rounded"
+                            title="Eliminar evento"
+                          >
+                            <Trash2 size={10} className="text-red-600" />
+                          </button>
+                        </ProtectedAction>
                       </div>
                     </div>
                   ))}
