@@ -158,6 +158,15 @@ const MilestonesView = () => {
                      milestone.status === 'in-progress' ? 'En Progreso' : 'Planificación'}
                   </span>
                 </div>
+                
+                {milestone.story_id && (
+                  <div className="mb-2">
+                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 rounded-full text-xs">
+                      📖 Historia: {stories.find(s => s.id == milestone.story_id)?.title || 'Historia no encontrada'}
+                    </span>
+                  </div>
+                )}
+                
                 <p className="text-sm text-gray-600 mb-2">{milestone.description}</p>
                 
                 {/* Barra de progreso */}
@@ -199,6 +208,12 @@ const MilestonesView = () => {
                 <Calendar size={14} />
                 <span>Fecha límite: {new Date(milestone.due_date).toLocaleDateString()}</span>
               </div>
+              {milestone.region && (
+                <div className="flex items-center gap-1">
+                  <span>🌍</span>
+                  <span>Región: {milestone.region}</span>
+                </div>
+              )}
             </div>
 
             {/* Comments Section */}
