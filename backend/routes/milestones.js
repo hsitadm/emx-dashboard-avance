@@ -1,11 +1,11 @@
 import express from 'express'
 import db from '../config/database.js'
-// import { authenticateUser } from '../middleware/auth.js'
+import { authenticateUser } from '../middleware/auth.js'
 
 const router = express.Router()
 
-// Temporalmente deshabilitado para desarrollo
-// router.use(authenticateUser)
+// Aplicar autenticación a todas las rutas
+router.use(authenticateUser)
 
 // GET /api/milestones - Obtener todos los milestones
 router.get('/', async (req, res) => {
