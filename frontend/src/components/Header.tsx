@@ -1,13 +1,7 @@
 import { useStore } from '../store/useStore'
-import { LogOut, Settings } from 'lucide-react'
-import Notifications from './Notifications'
 
 const Header = () => {
-  const { user, setUser } = useStore()
-
-  const handleLogout = () => {
-    setUser(null)
-  }
+  const { user } = useStore()
 
   return (
     <header className="bg-white shadow-sm border-b border-gray-200">
@@ -19,22 +13,9 @@ const Header = () => {
 
           <div className="flex items-center space-x-4">
             <div className="text-sm text-gray-700">
-              <span className="font-medium">{user?.name}</span>
-              <span className="text-gray-500 ml-2">({user?.role})</span>
+              <span className="font-medium">{user?.name || 'Sistema'}</span>
+              <span className="text-gray-500 ml-2">Transición EMx</span>
             </div>
-            
-            <Notifications />
-            
-            <button className="p-2 text-gray-400 hover:text-gray-600">
-              <Settings size={20} />
-            </button>
-            
-            <button 
-              onClick={handleLogout}
-              className="p-2 text-gray-400 hover:text-gray-600"
-            >
-              <LogOut size={20} />
-            </button>
           </div>
         </div>
       </div>

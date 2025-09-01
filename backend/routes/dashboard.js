@@ -1,7 +1,11 @@
 import express from 'express'
 import db from '../config/database.js'
+// import { authenticateUser } from '../middleware/auth.js'
 
 const router = express.Router()
+
+// Temporalmente deshabilitado para desarrollo
+// router.use(authenticateUser)
 
 // GET /api/dashboard/metrics - Obtener métricas del dashboard
 router.get('/metrics', async (req, res) => {
