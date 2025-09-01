@@ -114,6 +114,7 @@ const Dashboard = () => {
           {activeView === 'calendar' && <CalendarView />}
           {activeView === 'analytics' && <Charts />}
           {activeView === 'gamification' && <Gamification />}
+          {activeView === 'users' && <UserManagement />}
         </div>
 
         {/* Role-based message for viewers */}
