@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { TrendingUp, Users, CheckCircle, Clock, BookOpen, Target } from 'lucide-react'
 import apiService from '../services/api.js'
+import { mockStories, getTasksByStoryId } from '../data/mockData'
 
 const ProgressOverview = () => {
   const [stories, setStories] = useState<any[]>([])
@@ -20,10 +21,14 @@ const ProgressOverview = () => {
 
   const loadData = async () => {
     try {
+      console.log('Loading data...')
       const [storiesData, dashboardData] = await Promise.all([
-        apiService.request('/stories').catch(() => []),
-        apiService.getDashboardMetrics().catch(() => ({ totalTasks: 0, completedTasks: 0 }))
+        apiService.request('/stories'),
+        apiService.getDashboardMetrics()
       ])
+      
+      console.log('Stories data:', storiesData)
+      console.log('Dashboard data:', dashboardData)
       
       setStories(storiesData)
       
@@ -38,7 +43,8 @@ const ProgressOverview = () => {
         generalProgress: Math.round(avgProgress)
       })
     } catch (error) {
-      // Silently handle errors
+      console.error('Error loading data:', error)
+      // Fallback to empty data
       setStories([])
       setMetrics({
         totalStories: 0,
@@ -52,9 +58,12 @@ const ProgressOverview = () => {
 
   const loadStoryTasks = async (storyId: number) => {
     try {
-      const tasks = await apiService.request(`/stories/${storyId}/tasks`).catch(() => [])
+      console.log('Loading tasks for story:', storyId)
+      const tasks = await apiService.request(`/stories/${storyId}/tasks`)
+      console.log('Tasks data:', tasks)
       setStoryTasks(tasks)
     } catch (error) {
+      console.error('Error loading story tasks:', error)
       setStoryTasks([])
     }
   }
