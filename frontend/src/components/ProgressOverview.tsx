@@ -500,8 +500,21 @@ const ProgressOverview = () => {
                   <p className="text-sm text-gray-600 mb-2 ml-6">{milestone.description}</p>
                 )}
                 
+                {milestone.story_id && (
+                  <div className="ml-6 mb-2">
+                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 rounded-full text-xs">
+                      📖 Historia: {stories.find(s => s.id == milestone.story_id)?.title || 'Historia no encontrada'}
+                    </span>
+                  </div>
+                )}
+                
                 <div className="flex items-center justify-between text-xs text-gray-500 ml-6">
-                  <span>📅 {new Date(milestone.due_date).toLocaleDateString()}</span>
+                  <div className="flex items-center gap-3">
+                    <span>📅 {new Date(milestone.due_date).toLocaleDateString()}</span>
+                    {milestone.region && (
+                      <span>🌍 {milestone.region}</span>
+                    )}
+                  </div>
                   <span className={`${
                     milestone.priority === 'high' ? 'text-red-600' :
                     milestone.priority === 'medium' ? 'text-yellow-600' : 'text-green-600'
