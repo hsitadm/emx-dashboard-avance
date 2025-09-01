@@ -4,6 +4,8 @@ import apiService from '../services/api.js'
 
 const ProgressOverview = () => {
   const [stories, setStories] = useState<any[]>([])
+  const [selectedStory, setSelectedStory] = useState<any>(null)
+  const [storyTasks, setStoryTasks] = useState<any[]>([])
   const [metrics, setMetrics] = useState({
     totalStories: 0,
     completedStories: 0,
@@ -45,6 +47,25 @@ const ProgressOverview = () => {
         completedTasks: 0,
         generalProgress: 0
       })
+    }
+  }
+
+  const loadStoryTasks = async (storyId: number) => {
+    try {
+      const tasks = await apiService.request(`/stories/${storyId}/tasks`).catch(() => [])
+      setStoryTasks(tasks)
+    } catch (error) {
+      setStoryTasks([])
+    }
+  }
+
+  const handleStoryClick = (story: any) => {
+    if (selectedStory?.id === story.id) {
+      setSelectedStory(null)
+      setStoryTasks([])
+    } else {
+      setSelectedStory(story)
+      loadStoryTasks(story.id)
     }
   }
 
@@ -155,7 +176,13 @@ const ProgressOverview = () => {
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {stories.map((story, index) => (
-            <div key={story.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
+            <div 
+              key={story.id} 
+              onClick={() => handleStoryClick(story)}
+              className={`border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all cursor-pointer ${
+                selectedStory?.id === story.id ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:shadow-sm'
+              }`}
+            >
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
                   <h4 className="font-medium text-gray-900">{story.title}</h4>
@@ -211,10 +238,143 @@ const ProgressOverview = () => {
           )}
         </div>
 
-        {stories.length > 0 && (
+        {/* Detalles de Historia Seleccionada */}
+        {selectedStory && (
+          <div className="mt-6 pt-6 border-t border-gray-200">
+            <div className="bg-white rounded-lg border border-gray-200 p-6">
+              <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <Target className="w-5 h-5 text-blue-600" />
+                {selectedStory.title}
+              </h3>
+              
+              {selectedStory.description && (
+                <p className="text-sm text-gray-600 mb-4">{selectedStory.description}</p>
+              )}
+              
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 text-sm">
+                <div>
+                  <span className="text-gray-500">Estado:</span>
+                  <div className={`mt-1 px-2 py-1 rounded text-xs font-medium inline-block ${
+                    selectedStory.status === 'completed' ? 'bg-green-100 text-green-800' :
+                    selectedStory.status === 'in-progress' ? 'bg-blue-100 text-blue-800' :
+                    'bg-gray-100 text-gray-800'
+                  }`}>
+                    {selectedStory.status === 'completed' ? 'Completada' : 
+                     selectedStory.status === 'in-progress' ? 'En Progreso' : 'Activa'}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-gray-500">Responsable:</span>
+                  <div className="mt-1 font-medium">{selectedStory.assignee_name || 'Sin asignar'}</div>
+                </div>
+                <div>
+                  <span className="text-gray-500">Fecha objetivo:</span>
+                  <div className="mt-1 font-medium">
+                    {selectedStory.target_date ? new Date(selectedStory.target_date).toLocaleDateString() : 'Sin fecha'}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-gray-500">Progreso:</span>
+                  <div className="mt-1 font-medium">{selectedStory.progress || 0}%</div>
+                </div>
+              </div>
+
+              {/* Resumen de tareas */}
+              {storyTasks.length > 0 && (
+                <div className="mb-6">
+                  <div className="flex justify-between items-center mb-3">
+                    <h4 className="font-medium text-gray-900">Resumen de tareas</h4>
+                    <span className="text-sm text-gray-500">
+                      {storyTasks.filter(t => t.status === 'completed').length} de {storyTasks.length} completadas
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3 text-sm">
+                    <div className="text-center p-3 bg-green-50 rounded-lg">
+                      <div className="font-semibold text-green-700 text-lg">
+                        {storyTasks.filter(t => t.status === 'completed').length}
+                      </div>
+                      <div className="text-green-600">Completadas</div>
+                    </div>
+                    <div className="text-center p-3 bg-blue-50 rounded-lg">
+                      <div className="font-semibold text-blue-700 text-lg">
+                        {storyTasks.filter(t => t.status === 'in-progress').length}
+                      </div>
+                      <div className="text-blue-600">En Progreso</div>
+                    </div>
+                    <div className="text-center p-3 bg-gray-50 rounded-lg">
+                      <div className="font-semibold text-gray-700 text-lg">
+                        {storyTasks.filter(t => t.status === 'pending').length}
+                      </div>
+                      <div className="text-gray-600">Pendientes</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Lista de tareas */}
+              <div>
+                <h4 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  Tareas Asociadas ({storyTasks.length})
+                </h4>
+                <div className="space-y-3 max-h-60 overflow-y-auto">
+                  {storyTasks.map((task) => (
+                    <div key={task.id} className="border border-gray-200 rounded-lg p-3 bg-gray-50">
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-3 h-3 rounded-full ${
+                            task.status === 'completed' ? 'bg-green-500' : 
+                            task.status === 'in-progress' ? 'bg-blue-500' : 'bg-gray-400'
+                          }`}></div>
+                          <h5 className="font-medium text-gray-900 text-sm">{task.title}</h5>
+                        </div>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          task.status === 'completed' ? 'bg-green-100 text-green-800' :
+                          task.status === 'in-progress' ? 'bg-blue-100 text-blue-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {task.status === 'completed' ? 'Completada' :
+                           task.status === 'in-progress' ? 'En Progreso' : 'Pendiente'}
+                        </span>
+                      </div>
+                      
+                      <div className="flex items-center justify-between text-xs text-gray-500">
+                        <div className="flex items-center gap-3">
+                          <span>👤 {task.assignee_name || 'Sin asignar'}</span>
+                          {task.due_date && (
+                            <span>📅 {new Date(task.due_date).toLocaleDateString()}</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-12 bg-gray-200 rounded-full h-1.5">
+                            <div 
+                              className={`h-1.5 rounded-full transition-all duration-300 ${
+                                task.status === 'completed' ? 'bg-green-500' : 'bg-blue-500'
+                              }`}
+                              style={{ width: `${task.progress || 0}%` }}
+                            ></div>
+                          </div>
+                          <span className="font-medium">{task.progress || 0}%</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {storyTasks.length === 0 && (
+                    <div className="text-center py-6 text-gray-500">
+                      <Clock className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                      <p className="text-sm">No hay tareas asignadas a esta historia</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {stories.length > 0 && !selectedStory && (
           <div className="mt-6 pt-4 border-t border-gray-200 text-center">
             <p className="text-sm text-gray-600">
-              Para gestión detallada de historias y tareas, utiliza las pestañas correspondientes
+              <strong>💡 Tip:</strong> Haz clic en cualquier historia para ver sus tareas asociadas
             </p>
           </div>
         )}
