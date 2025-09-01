@@ -15,6 +15,7 @@ interface AuthState {
   isAuthenticated: boolean
   allUsers: User[]
   login: (email: string) => Promise<void>
+  loginAsViewer: () => void
   logout: () => void
   canEdit: () => boolean
   canAdmin: () => boolean
@@ -39,16 +40,33 @@ export const useAuthStore = create<AuthState>()(
       allUsers: initialUsers,
 
       login: async (email: string) => {
-        // Buscar usuario de prueba
+        // Solo permitir login a administradores registrados
         const { allUsers } = get()
-        const user = allUsers.find(u => u.email === email)
+        const user = allUsers.find(u => u.email === email && u.role === 'admin')
         
         if (!user) {
-          throw new Error('Usuario no encontrado')
+          throw new Error('Solo administradores pueden hacer login con credenciales')
         }
 
         set({
           user,
+          isAuthenticated: true,
+        })
+      },
+
+      loginAsViewer: () => {
+        // Crear usuario viewer temporal
+        const viewerUser: User = {
+          id: 0,
+          name: 'Usuario Invitado',
+          email: 'viewer@guest.com',
+          role: 'viewer',
+          region: 'TODAS',
+          created_at: new Date().toISOString().split('T')[0]
+        }
+
+        set({
+          user: viewerUser,
           isAuthenticated: true,
         })
       },
