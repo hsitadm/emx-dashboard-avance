@@ -1,49 +1,36 @@
-import { useEffect } from 'react'
-import { useStore } from './store/useStore'
+import React, { useState, useEffect } from 'react'
 import Dashboard from './components/Dashboard'
-import apiService from './services/api.js'
+import Login from './components/Login'
+import { useAuthStore } from './store/authStore'
 
 function App() {
-  const { setUser, loadTasks, addNotification } = useStore()
+  const [loading, setLoading] = useState(true)
+  const { isAuthenticated, user } = useAuthStore()
 
   useEffect(() => {
-    const initializeApp = async () => {
-      try {
-        // Cargar usuario actual
-        const user = await apiService.getCurrentUser()
-        setUser({
-          id: user.id.toString(),
-          name: user.name,
-          role: user.role,
-          region: user.region
-        })
-
-        // Cargar tareas
-        await loadTasks()
-
-        addNotification({
-          message: `¡Bienvenido ${user.name}! Datos EMx cargados correctamente.`,
-          type: 'success'
-        })
-      } catch (error) {
-        console.error('Error initializing app:', error)
-        // Fallback a usuario demo si falla la API
-        setUser({
-          id: '1',
-          name: 'Usuario Demo',
-          role: 'director',
-          region: 'TODAS'
-        })
-        
-        addNotification({
-          message: 'Usando datos de demostración. Verifica que el backend esté ejecutándose.',
-          type: 'warning'
-        })
-      }
+    // Simular verificación de autenticación
+    const checkAuth = async () => {
+      // Por ahora solo verificamos si hay un usuario en localStorage
+      setLoading(false)
     }
+    
+    checkAuth()
+  }, [])
 
-    initializeApp()
-  }, [setUser, loadTasks, addNotification])
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Cargando...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!isAuthenticated) {
+    return <Login />
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
