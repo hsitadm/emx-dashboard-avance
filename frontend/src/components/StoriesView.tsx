@@ -349,7 +349,7 @@ const StoriesView = () => {
                         </div>
                         <div className="text-center p-2 bg-gray-50 rounded">
                           <div className="font-medium text-gray-700">
-                            {storyTasks.filter(t => t.status === 'pending').length}
+                            {storyTasks.filter(t => t.status === 'planning').length}
                           </div>
                           <div className="text-gray-600">Pendientes</div>
                         </div>

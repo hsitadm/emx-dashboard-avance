@@ -21,14 +21,10 @@ const ProgressOverview = () => {
 
   const loadData = async () => {
     try {
-      console.log('Loading data...')
       const [storiesData, dashboardData] = await Promise.all([
         apiService.request('/stories'),
         apiService.getDashboardMetrics()
       ])
-      
-      console.log('Stories data:', storiesData)
-      console.log('Dashboard data:', dashboardData)
       
       setStories(storiesData)
       
@@ -58,9 +54,7 @@ const ProgressOverview = () => {
 
   const loadStoryTasks = async (storyId: number) => {
     try {
-      console.log('Loading tasks for story:', storyId)
       const tasks = await apiService.request(`/stories/${storyId}/tasks`)
-      console.log('Tasks data:', tasks)
       setStoryTasks(tasks)
     } catch (error) {
       console.error('Error loading story tasks:', error)
@@ -312,7 +306,7 @@ const ProgressOverview = () => {
                     </div>
                     <div className="text-center p-3 bg-gray-50 rounded-lg">
                       <div className="font-semibold text-gray-700 text-lg">
-                        {storyTasks.filter(t => t.status === 'pending').length}
+                        {storyTasks.filter(t => t.status === 'planning').length}
                       </div>
                       <div className="text-gray-600">Pendientes</div>
                     </div>
