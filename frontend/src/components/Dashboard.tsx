@@ -11,11 +11,12 @@ import KanbanBoard from './KanbanBoard'
 import CalendarView from './CalendarView'
 import Gamification from './Gamification'
 import StoriesView from './StoriesView'
-import { LayoutGrid, Calendar, Kanban, BarChart3, Trophy, BookOpen, CheckSquare, Target, LogOut, User } from 'lucide-react'
+import UserManagement from './UserManagement'
+import { LayoutGrid, Calendar, Kanban, BarChart3, Trophy, BookOpen, CheckSquare, Target, LogOut, User, Users } from 'lucide-react'
 
 const Dashboard = () => {
   const user = useStore(state => state.user)
-  const { user: authUser, canView, logout } = useAuthStore()
+  const { user: authUser, canView, canAdmin, logout } = useAuthStore()
   const [activeView, setActiveView] = useState('overview')
 
   const allViews = [
@@ -26,11 +27,15 @@ const Dashboard = () => {
     { id: 'kanban', label: 'Kanban', icon: Kanban, key: 'kanban' },
     { id: 'calendar', label: 'Calendario', icon: Calendar, key: 'calendar' },
     { id: 'analytics', label: 'Análisis', icon: BarChart3, key: 'analytics' },
-    { id: 'gamification', label: 'Logros', icon: Trophy, key: 'gamification' }
+    { id: 'gamification', label: 'Logros', icon: Trophy, key: 'gamification' },
+    { id: 'users', label: 'Usuarios', icon: Users, key: 'users', adminOnly: true }
   ]
 
   // Filtrar vistas según permisos del usuario
-  const views = allViews.filter(view => canView(view.key))
+  const views = allViews.filter(view => {
+    if (view.adminOnly && !canAdmin()) return false
+    return canView(view.key)
+  })
 
   const handleLogout = () => {
     logout()

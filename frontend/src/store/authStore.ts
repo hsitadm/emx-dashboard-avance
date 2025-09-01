@@ -67,12 +67,19 @@ export const useAuthStore = create<AuthState>()(
         const { user } = get()
         if (!user) return false
 
+        // Admin puede ver todo
+        if (user.role === 'admin') return true
+
         // Viewer solo puede ver: resumen, análisis, calendario
         if (user.role === 'viewer') {
           return ['dashboard', 'analytics', 'calendar'].includes(tab)
         }
 
-        // Admin y Editor pueden ver todo
+        // Editor puede ver todo excepto usuarios
+        if (user.role === 'editor') {
+          return tab !== 'users'
+        }
+
         return true
       },
     }),
