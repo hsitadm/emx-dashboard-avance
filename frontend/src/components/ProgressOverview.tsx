@@ -473,12 +473,6 @@ const ProgressOverview = () => {
               <strong>💡 Tip:</strong> Haz clic en cualquier historia para ver sus tareas asociadas
             </p>
           </div>
-        {stories.length > 0 && !selectedStory && (
-          <div className="mt-6 pt-4 border-t border-gray-200 text-center">
-            <p className="text-sm text-gray-600">
-              <strong>💡 Tip:</strong> Haz clic en cualquier historia para ver sus tareas asociadas
-            </p>
-          </div>
         )}
       </div>
     </div>
