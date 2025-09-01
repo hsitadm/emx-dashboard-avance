@@ -18,6 +18,17 @@ const ProgressOverview = () => {
 
   useEffect(() => {
     loadData()
+    
+    // Listener para actualizar cuando se modifican hitos
+    const handleMilestoneUpdate = () => {
+      loadData()
+    }
+    
+    window.addEventListener('milestoneUpdated', handleMilestoneUpdate)
+    
+    return () => {
+      window.removeEventListener('milestoneUpdated', handleMilestoneUpdate)
+    }
   }, [])
 
   const loadData = async () => {

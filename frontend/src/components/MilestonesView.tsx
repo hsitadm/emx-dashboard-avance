@@ -87,6 +87,9 @@ const MilestonesView = () => {
       setShowModal(false)
       setEditingMilestone(null)
       loadMilestones()
+      
+      // Disparar evento para actualizar otros componentes
+      window.dispatchEvent(new CustomEvent('milestoneUpdated'))
     } catch (error) {
       console.error('Error saving milestone:', error)
     }
@@ -97,6 +100,9 @@ const MilestonesView = () => {
       try {
         await apiService.request(`/milestones/${milestone.id}`, { method: 'DELETE' })
         loadMilestones()
+        
+        // Disparar evento para actualizar otros componentes
+        window.dispatchEvent(new CustomEvent('milestoneUpdated'))
       } catch (error) {
         console.error('Error deleting milestone:', error)
       }
