@@ -107,10 +107,7 @@ const Dashboard = () => {
         {/* Content */}
         <div className="space-y-6">
           {activeView === 'overview' && (
-            <>
-              <ProgressOverview />
-              <MilestoneTimeline />
-            </>
+            <ProgressOverview />
           )}
           {activeView === 'stories' && <StoriesView />}
           {activeView === 'tasks' && <TaskBoard />}
