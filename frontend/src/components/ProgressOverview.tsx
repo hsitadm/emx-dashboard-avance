@@ -426,7 +426,7 @@ const ProgressOverview = () => {
           </div>
         </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
             <div className="text-center p-6 bg-green-50 rounded-lg border border-green-200">
               <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-green-100 mb-3">
                 <Target className="w-6 h-6 text-green-600" />
@@ -442,18 +442,33 @@ const ProgressOverview = () => {
               </div>
             </div>
 
+            <div className="text-center p-6 bg-blue-50 rounded-lg border border-blue-200">
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-blue-100 mb-3">
+                <Clock className="w-6 h-6 text-blue-600" />
+              </div>
+              <div className="text-3xl font-bold text-blue-700 mb-1">
+                {milestones.filter(m => m.status === 'in-progress').length}
+              </div>
+              <div className="text-sm text-blue-600 font-medium">
+                Hitos En Progreso
+              </div>
+              <div className="text-xs text-blue-500 mt-1">
+                En desarrollo
+              </div>
+            </div>
+
             <div className="text-center p-6 bg-orange-50 rounded-lg border border-orange-200">
               <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-orange-100 mb-3">
                 <Clock className="w-6 h-6 text-orange-600" />
               </div>
               <div className="text-3xl font-bold text-orange-700 mb-1">
-                {milestones.filter(m => m.status !== 'completed').length}
+                {milestones.filter(m => m.status === 'planning').length}
               </div>
               <div className="text-sm text-orange-600 font-medium">
                 Hitos Pendientes
               </div>
               <div className="text-xs text-orange-500 mt-1">
-                Por completar
+                Por iniciar
               </div>
             </div>
           </div>
