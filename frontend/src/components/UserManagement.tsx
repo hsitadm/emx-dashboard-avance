@@ -12,14 +12,7 @@ interface UserData {
 }
 
 const UserManagement: React.FC = () => {
-  const { canAdmin, user: currentUser } = useAuthStore()
-  const [users, setUsers] = useState<UserData[]>([
-    { id: 1, name: 'Admin User', email: 'admin@emx.com', role: 'admin', region: 'TODAS', created_at: '2024-01-15' },
-    { id: 2, name: 'Editor User', email: 'editor@emx.com', role: 'editor', region: 'CECA', created_at: '2024-02-10' },
-    { id: 3, name: 'Viewer User', email: 'viewer@emx.com', role: 'viewer', region: 'SOLA', created_at: '2024-03-05' },
-    { id: 4, name: 'María González', email: 'maria.gonzalez@emx.com', role: 'editor', region: 'MX', created_at: '2024-03-20' },
-    { id: 5, name: 'Carlos Ruiz', email: 'carlos.ruiz@emx.com', role: 'viewer', region: 'SNAP', created_at: '2024-04-01' }
-  ])
+  const { canAdmin, user: currentUser, allUsers, addUser, updateUser, deleteUser } = useAuthStore()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<UserData | null>(null)
   const [formData, setFormData] = useState({
@@ -40,18 +33,9 @@ const UserManagement: React.FC = () => {
     e.preventDefault()
     
     if (editingUser) {
-      setUsers(users.map(user => 
-        user.id === editingUser.id 
-          ? { ...user, ...formData }
-          : user
-      ))
+      updateUser(editingUser.id, formData)
     } else {
-      const newUser: UserData = {
-        id: Math.max(...users.map(u => u.id)) + 1,
-        ...formData,
-        created_at: new Date().toISOString().split('T')[0]
-      }
-      setUsers([...users, newUser])
+      addUser(formData)
     }
 
     resetForm()
@@ -75,7 +59,7 @@ const UserManagement: React.FC = () => {
     }
     
     if (window.confirm('¿Estás seguro de que quieres eliminar este usuario?')) {
-      setUsers(users.filter(user => user.id !== userId))
+      deleteUser(userId)
     }
   }
 
@@ -145,7 +129,7 @@ const UserManagement: React.FC = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {users.map((user) => {
+            {allUsers.map((user) => {
               const roleInfo = getRoleInfo(user.role)
               const RoleIcon = roleInfo.icon
               
