@@ -248,12 +248,23 @@ const ProgressOverview = () => {
 
         {/* Detalles de Historia Seleccionada */}
         {selectedStory && (
-          <div className="mt-6 pt-6 border-t border-gray-200">
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <Target className="w-5 h-5 text-blue-600" />
-                {selectedStory.title}
-              </h3>
+          <div className="mt-6 pt-6 border-t-4 border-blue-200 bg-blue-50/30">
+            <div className="bg-white rounded-lg border-2 border-blue-200 p-6 shadow-sm">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-gray-900 flex items-center gap-3">
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <Target className="w-5 h-5 text-blue-600" />
+                  </div>
+                  Detalles de Historia: {selectedStory.title}
+                </h3>
+                <button 
+                  onClick={() => setSelectedStory(null)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  title="Cerrar detalles"
+                >
+                  ✕
+                </button>
+              </div>
               
               {selectedStory.description && (
                 <p className="text-sm text-gray-600 mb-4">{selectedStory.description}</p>
@@ -388,14 +399,31 @@ const ProgressOverview = () => {
         )}
       </div>
 
+      {/* Separador Visual */}
+      <div className="flex items-center justify-center py-8">
+        <div className="flex items-center gap-4 w-full max-w-md">
+          <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-gray-300"></div>
+          <div className="flex items-center gap-2 px-4 py-2 bg-primary-50 rounded-full border border-primary-200">
+            <Target className="w-4 h-4 text-primary-600" />
+            <span className="text-sm font-medium text-primary-700">HITOS DEL PROYECTO</span>
+          </div>
+          <div className="flex-1 h-px bg-gradient-to-l from-transparent via-gray-300 to-gray-300"></div>
+        </div>
+      </div>
+
       {/* Resumen de Hitos */}
-      <div className="card">
+      <div className="card bg-gradient-to-br from-gray-50 to-white border-2 border-gray-200">
         <div className="flex justify-between items-center mb-6">
-          <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-            <Target className="w-5 h-5 text-primary-600" />
-            Resumen de Hitos
+          <h3 className="text-xl font-bold text-gray-900 flex items-center gap-3">
+            <div className="p-2 bg-primary-100 rounded-lg">
+              <Target className="w-6 h-6 text-primary-600" />
+            </div>
+            Hitos del Proyecto
           </h3>
-          <span className="text-sm text-gray-500">Estado general</span>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-primary-500 rounded-full"></div>
+            <span className="text-sm text-gray-500 font-medium">Estado general</span>
+          </div>
         </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
