@@ -5,6 +5,7 @@ import CommentsSection from './CommentsSection'
 
 const MilestonesView = () => {
   const [milestones, setMilestones] = useState<any[]>([])
+  const [stories, setStories] = useState<any[]>([])
   const [showModal, setShowModal] = useState(false)
   const [editingMilestone, setEditingMilestone] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -13,11 +14,14 @@ const MilestonesView = () => {
     description: '',
     due_date: '',
     status: 'planning',
-    progress: 0
+    progress: 0,
+    story_id: '',
+    region: ''
   })
 
   useEffect(() => {
     loadMilestones()
+    loadStories()
   }, [])
 
   useEffect(() => {
@@ -27,7 +31,9 @@ const MilestonesView = () => {
         description: editingMilestone.description || '',
         due_date: editingMilestone.due_date || '',
         status: editingMilestone.status || 'planning',
-        progress: editingMilestone.progress || 0
+        progress: editingMilestone.progress || 0,
+        story_id: editingMilestone.story_id || '',
+        region: editingMilestone.region || ''
       })
     } else {
       setFormData({
@@ -35,7 +41,9 @@ const MilestonesView = () => {
         description: '',
         due_date: '',
         status: 'planning',
-        progress: 0
+        progress: 0,
+        story_id: '',
+        region: ''
       })
     }
   }, [editingMilestone])
@@ -48,6 +56,15 @@ const MilestonesView = () => {
       console.error('Error loading milestones:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadStories = async () => {
+    try {
+      const data = await apiService.request('/stories')
+      setStories(data)
+    } catch (error) {
+      console.error('Error loading stories:', error)
     }
   }
 
@@ -252,6 +269,44 @@ const MilestonesView = () => {
                     <option value="planning">Planificación</option>
                     <option value="in-progress">En Progreso</option>
                     <option value="completed">Completado</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Historia Asociada
+                  </label>
+                  <select
+                    value={formData.story_id}
+                    onChange={(e) => setFormData({...formData, story_id: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="">Sin historia asociada</option>
+                    {stories.map((story) => (
+                      <option key={story.id} value={story.id}>
+                        {story.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Región
+                  </label>
+                  <select
+                    value={formData.region}
+                    onChange={(e) => setFormData({...formData, region: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="">Seleccionar región</option>
+                    <option value="TODAS">🌍 TODAS</option>
+                    <option value="CECA">CECA</option>
+                    <option value="SOLA">SOLA</option>
+                    <option value="MX">MX</option>
+                    <option value="SNAP">SNAP</option>
+                    <option value="COEC">COEC</option>
                   </select>
                 </div>
               </div>
