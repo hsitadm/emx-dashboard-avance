@@ -18,6 +18,7 @@ const Dashboard = () => {
   const user = useStore(state => state.user)
   const { user: authUser, canView, canAdmin, logout } = useAuthStore()
   const [activeView, setActiveView] = useState('overview')
+  const [overviewKey, setOverviewKey] = useState(0)
 
   const allViews = [
     { id: 'overview', label: 'Resumen', icon: LayoutGrid, key: 'dashboard' },
@@ -88,7 +89,12 @@ const Dashboard = () => {
                 return (
                   <button
                     key={view.id}
-                    onClick={() => setActiveView(view.id)}
+                    onClick={() => {
+                      setActiveView(view.id)
+                      if (view.id === 'overview') {
+                        setOverviewKey(prev => prev + 1)
+                      }
+                    }}
                     className={`flex items-center space-x-2 py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
                       activeView === view.id
                         ? 'border-blue-500 text-blue-600'
@@ -107,7 +113,7 @@ const Dashboard = () => {
         {/* Content */}
         <div className="space-y-6">
           {activeView === 'overview' && (
-            <ProgressOverview />
+            <ProgressOverview key={overviewKey} />
           )}
           {activeView === 'stories' && <StoriesView />}
           {activeView === 'tasks' && <TaskBoard />}

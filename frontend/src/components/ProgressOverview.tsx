@@ -21,13 +21,25 @@ const ProgressOverview = () => {
     
     // Listener para actualizar cuando se modifican hitos
     const handleMilestoneUpdate = () => {
+      console.log('Milestone updated event received')
+      loadData()
+    }
+    
+    // Listener para actualizar cuando se enfoca la ventana
+    const handleFocus = () => {
       loadData()
     }
     
     window.addEventListener('milestoneUpdated', handleMilestoneUpdate)
+    window.addEventListener('focus', handleFocus)
+    
+    // Intervalo para actualizar cada 30 segundos
+    const interval = setInterval(loadData, 30000)
     
     return () => {
       window.removeEventListener('milestoneUpdated', handleMilestoneUpdate)
+      window.removeEventListener('focus', handleFocus)
+      clearInterval(interval)
     }
   }, [])
 

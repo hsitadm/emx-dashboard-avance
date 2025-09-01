@@ -89,6 +89,7 @@ const MilestonesView = () => {
       loadMilestones()
       
       // Disparar evento para actualizar otros componentes
+      console.log('Dispatching milestoneUpdated event')
       window.dispatchEvent(new CustomEvent('milestoneUpdated'))
     } catch (error) {
       console.error('Error saving milestone:', error)
