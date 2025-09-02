@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { Plus, Edit } from "lucide-react"
+import { Plus, Edit, ChevronLeft, ChevronRight } from "lucide-react"
 import { useStore } from "../store/useStore"
 import TaskModal from "./TaskModal"
 import AdvancedFilters from "./AdvancedFilters"
@@ -10,21 +10,16 @@ const KanbanBoard = () => {
   const [editingTask, setEditingTask] = useState(null)
   const [filters, setFilters] = useState({})
 
+  const columns = [
+    { id: 'planning', title: '📋 Planificación', color: 'bg-blue-50' },
+    { id: 'in-progress', title: '⚡ En Progreso', color: 'bg-yellow-50' },
+    { id: 'completed', title: '✅ Completado', color: 'bg-green-50' },
+    { id: 'review', title: '👁️ En Revisión', color: 'bg-purple-50' }
+  ]
+
   useEffect(() => {
     loadTasks()
   }, [loadTasks])
-
-  const columns = [
-    { id: "planning", title: "Planificación", color: "bg-gray-100" },
-    { id: "in-progress", title: "En Progreso", color: "bg-blue-100" },
-    { id: "review", title: "En Revisión", color: "bg-yellow-100" },
-    { id: "completed", title: "Completado", color: "bg-green-100" }
-  ]
-
-  const handleNewTask = () => {
-    setEditingTask(null)
-    setIsModalOpen(true)
-  }
 
   const getFilteredTasks = () => {
     return tasks.filter(task => {
@@ -45,6 +40,11 @@ const KanbanBoard = () => {
     return getFilteredTasks().filter(task => task.status === status)
   }
 
+  const handleNewTask = () => {
+    setEditingTask(null)
+    setIsModalOpen(true)
+  }
+
   const handleSaveTask = async (taskData) => {
     if (editingTask) {
       await updateTask(editingTask.id, taskData)
@@ -53,6 +53,26 @@ const KanbanBoard = () => {
     }
     setIsModalOpen(false)
     setEditingTask(null)
+  }
+
+  const moveTask = async (taskId: string, newStatus: string) => {
+    try {
+      await updateTask(taskId, { status: newStatus })
+    } catch (error) {
+      console.error('Error moving task:', error)
+    }
+  }
+
+  const getNextStatus = (currentStatus: string) => {
+    const statusOrder = ['planning', 'in-progress', 'completed', 'review']
+    const currentIndex = statusOrder.indexOf(currentStatus)
+    return currentIndex < statusOrder.length - 1 ? statusOrder[currentIndex + 1] : null
+  }
+
+  const getPrevStatus = (currentStatus: string) => {
+    const statusOrder = ['planning', 'in-progress', 'completed', 'review']
+    const currentIndex = statusOrder.indexOf(currentStatus)
+    return currentIndex > 0 ? statusOrder[currentIndex - 1] : null
   }
 
   const getPriorityColor = (priority) => {
@@ -104,12 +124,33 @@ const KanbanBoard = () => {
                 <div key={task.id} className="bg-white rounded-xl p-4 shadow-md border border-gray-100 hover:shadow-lg transition-all duration-200 hover:scale-[1.02]">
                   <div className="flex justify-between items-start mb-3">
                     <h4 className="font-semibold text-gray-900 text-sm leading-tight">{task.title}</h4>
-                    <button 
-                      onClick={() => { setEditingTask(task); setIsModalOpen(true) }} 
-                      className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 p-1 rounded-md transition-colors"
-                    >
-                      <Edit size={16} />
-                    </button>
+                    <div className="flex gap-1">
+                      {getPrevStatus(task.status) && (
+                        <button 
+                          onClick={() => moveTask(task.id, getPrevStatus(task.status))} 
+                          className="text-gray-600 hover:text-gray-800 hover:bg-gray-50 p-1 rounded-md transition-colors"
+                          title="Mover atrás"
+                        >
+                          <ChevronLeft size={16} />
+                        </button>
+                      )}
+                      {getNextStatus(task.status) && (
+                        <button 
+                          onClick={() => moveTask(task.id, getNextStatus(task.status))} 
+                          className="text-green-600 hover:text-green-800 hover:bg-green-50 p-1 rounded-md transition-colors"
+                          title="Mover adelante"
+                        >
+                          <ChevronRight size={16} />
+                        </button>
+                      )}
+                      <button 
+                        onClick={() => { setEditingTask(task); setIsModalOpen(true) }} 
+                        className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 p-1 rounded-md transition-colors"
+                        title="Editar"
+                      >
+                        <Edit size={16} />
+                      </button>
+                    </div>
                   </div>
                   
                   <p className="text-xs text-gray-600 mb-3 line-clamp-2">{task.description}</p>
