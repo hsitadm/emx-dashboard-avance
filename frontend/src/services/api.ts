@@ -1,147 +1,55 @@
-const API_BASE_URL = '/api'
+const API_BASE_URL = '/api';
 
-class ApiService {
-  private baseURL: string
-
-  constructor() {
-    this.baseURL = API_BASE_URL
-  }
-
-  async request(endpoint: string, options: RequestInit = {}) {
-    const url = `${this.baseURL}${endpoint}`
-    
-    const config: RequestInit = {
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-      ...options,
-    }
-
-    try {
-      const response = await fetch(url, config)
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-      
-      return await response.json()
-    } catch (error) {
-      console.error('API request failed:', error)
-      throw error
-    }
-  }
+export const api = {
+  // Tasks
+  getTasks: () => fetch(`${API_BASE_URL}/tasks`).then(res => res.json()),
+  createTask: (task: any) => fetch(`${API_BASE_URL}/tasks`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(task)
+  }).then(res => res.json()),
+  updateTask: (id: number, task: any) => fetch(`${API_BASE_URL}/tasks/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(task)
+  }).then(res => res.json()),
+  deleteTask: (id: number) => fetch(`${API_BASE_URL}/tasks/${id}`, {
+    method: 'DELETE'
+  }),
 
   // Stories
-  async getStories() {
-    return this.request('/stories')
-  }
-
-  async createStory(story: any) {
-    return this.request('/stories', {
-      method: 'POST',
-      body: JSON.stringify(story),
-    })
-  }
-
-  async updateStory(id: number, story: any) {
-    return this.request(`/stories/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(story),
-    })
-  }
-
-  async deleteStory(id: number) {
-    return this.request(`/stories/${id}`, {
-      method: 'DELETE',
-    })
-  }
-
-  // Tasks
-  async getTasks() {
-    return this.request('/tasks')
-  }
-
-  async createTask(task: any) {
-    return this.request('/tasks', {
-      method: 'POST',
-      body: JSON.stringify(task),
-    })
-  }
-
-  async updateTask(id: number, task: any) {
-    return this.request(`/tasks/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(task),
-    })
-  }
-
-  async deleteTask(id: number) {
-    return this.request(`/tasks/${id}`, {
-      method: 'DELETE',
-    })
-  }
+  getStories: () => fetch(`${API_BASE_URL}/stories`).then(res => res.json()),
+  createStory: (story: any) => fetch(`${API_BASE_URL}/stories`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(story)
+  }).then(res => res.json()),
+  updateStory: (id: number, story: any) => fetch(`${API_BASE_URL}/stories/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(story)
+  }).then(res => res.json()),
+  deleteStory: (id: number) => fetch(`${API_BASE_URL}/stories/${id}`, {
+    method: 'DELETE'
+  }),
 
   // Milestones
-  async getMilestones() {
-    return this.request('/milestones')
-  }
-
-  async createMilestone(milestone: any) {
-    return this.request('/milestones', {
-      method: 'POST',
-      body: JSON.stringify(milestone),
-    })
-  }
-
-  async updateMilestone(id: number, milestone: any) {
-    return this.request(`/milestones/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(milestone),
-    })
-  }
-
-  async deleteMilestone(id: number) {
-    return this.request(`/milestones/${id}`, {
-      method: 'DELETE',
-    })
-  }
+  getMilestones: () => fetch(`${API_BASE_URL}/milestones`).then(res => res.json()),
+  createMilestone: (milestone: any) => fetch(`${API_BASE_URL}/milestones`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(milestone)
+  }).then(res => res.json()),
+  updateMilestone: (id: number, milestone: any) => fetch(`${API_BASE_URL}/milestones/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(milestone)
+  }).then(res => res.json()),
+  deleteMilestone: (id: number) => fetch(`${API_BASE_URL}/milestones/${id}`, {
+    method: 'DELETE'
+  }),
 
   // Users
-  async getUsers() {
-    return this.request('/users')
-  }
-
-  async createUser(user: any) {
-    return this.request('/users', {
-      method: 'POST',
-      body: JSON.stringify(user),
-    })
-  }
-
-  async updateUser(id: number, user: any) {
-    return this.request(`/users/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(user),
-    })
-  }
-
-  async deleteUser(id: number) {
-    return this.request(`/users/${id}`, {
-      method: 'DELETE',
-    })
-  }
-
-  // Dashboard
-  async getDashboardMetrics() {
-    return this.request('/dashboard/metrics')
-  }
-
-  // Auth
-  async getCurrentUser() {
-    return this.request('/auth/me')
-  }
-}
-
-export const apiService = new ApiService()
-export default apiService
+  getUsers: () => fetch(`${API_BASE_URL}/users`).then(res => res.json()),
+  getCurrentUser: () => fetch(`${API_BASE_URL}/users/current`).then(res => res.json())
+};

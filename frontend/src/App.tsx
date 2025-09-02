@@ -5,17 +5,21 @@ import { useAuthStore } from './store/authStore'
 
 function App() {
   const [loading, setLoading] = useState(true)
-  const { isAuthenticated, user } = useAuthStore()
+  const { isAuthenticated, user, loginAsViewer } = useAuthStore()
 
   useEffect(() => {
-    // Simular verificación de autenticación
+    // Solo auto-login si no hay usuario y no se ha hecho logout manual
     const checkAuth = async () => {
-      // Por ahora solo verificamos si hay un usuario en localStorage
+      const hasLoggedOut = localStorage.getItem('hasLoggedOut')
+      
+      if (!isAuthenticated && !hasLoggedOut) {
+        loginAsViewer()
+      }
       setLoading(false)
     }
     
     checkAuth()
-  }, [])
+  }, [isAuthenticated, loginAsViewer])
 
   if (loading) {
     return (

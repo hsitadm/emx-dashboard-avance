@@ -23,13 +23,11 @@ const Dashboard = () => {
   const allViews = [
     { id: 'overview', label: 'Resumen', icon: LayoutGrid, key: 'dashboard' },
     { id: 'stories', label: 'Historias', icon: BookOpen, key: 'stories' },
-    { id: 'tasks', label: 'Tareas', icon: CheckSquare, key: 'tasks' },
     { id: 'milestones', label: 'Hitos', icon: Target, key: 'milestones' },
     { id: 'kanban', label: 'Kanban', icon: Kanban, key: 'kanban' },
     { id: 'calendar', label: 'Calendario', icon: Calendar, key: 'calendar' },
     { id: 'analytics', label: 'Análisis', icon: BarChart3, key: 'analytics' },
-    { id: 'gamification', label: 'Logros', icon: Trophy, key: 'gamification' },
-    { id: 'users', label: 'Usuarios', icon: Users, key: 'users' }
+    { id: 'users', label: 'Usuarios', icon: Users, key: 'users', adminOnly: true }
   ]
 
   // Filtrar vistas según permisos del usuario

@@ -52,6 +52,7 @@ export const useAuthStore = create<AuthState>()(
           user,
           isAuthenticated: true,
         })
+localStorage.removeItem("hasLoggedOut")
       },
 
       loginAsViewer: () => {
@@ -69,14 +70,10 @@ export const useAuthStore = create<AuthState>()(
           user: viewerUser,
           isAuthenticated: true,
         })
+localStorage.removeItem("hasLoggedOut")
       },
 
-      logout: () => {
-        set({
-          user: null,
-          isAuthenticated: false,
-        })
-      },
+logout: () => {        localStorage.setItem("hasLoggedOut", "true")        set({          user: null,          isAuthenticated: false,        })      },
 
       addUser: (userData) => {
         const { allUsers } = get()

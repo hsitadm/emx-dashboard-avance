@@ -1,0 +1,11 @@
+  const [regionFilter, setRegionFilter] = useState('all')
+  const [statusFilter, setStatusFilter] = useState('all')
+
+  const getFilteredTasksByStatus = (status) => {
+    return tasks.filter(task => {
+      if (task.status !== status) return false
+      if (regionFilter !== 'all' && task.region !== regionFilter) return false
+      if (statusFilter !== 'all' && task.status !== statusFilter) return false
+      return true
+    })
+  }

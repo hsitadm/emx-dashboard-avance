@@ -1,5 +1,4 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
 
 interface User {
   id: number
@@ -7,99 +6,139 @@ interface User {
   email: string
   role: 'admin' | 'editor' | 'viewer'
   region: string
-  created_at?: string
+  created_at: string
 }
 
 interface AuthState {
   user: User | null
-  token: string | null
   isAuthenticated: boolean
-  login: (email: string, password: string) => Promise<void>
+  allUsers: User[]
+  login: (email: string) => Promise<void>
   loginAsViewer: () => void
   logout: () => void
   canEdit: () => boolean
   canAdmin: () => boolean
   canView: (tab: string) => boolean
+  addUser: (userData: Omit<User, 'id' | 'created_at'>) => void
+  updateUser: (id: number, userData: Partial<User>) => void
+  deleteUser: (id: number) => void
 }
 
-export const useAuthStore = create<AuthState>()(
-  persist(
-    (set, get) => ({
-      user: null,
-      token: null,
-      isAuthenticated: false,
+// Usuarios de prueba
+const initialUsers: User[] = [
+  { id: 1, name: 'Admin User', email: 'admin@emx.com', role: 'admin', region: 'TODAS', created_at: '2024-01-15' },
+  { id: 2, name: 'Jose Porras', email: 'jose@emx.com', role: 'editor', region: 'SOLA', created_at: '2024-01-20' },
+  { id: 3, name: 'Hector Sandoval', email: 'hector@emx.com', role: 'editor', region: 'MX', created_at: '2024-01-25' },
+  { id: 4, name: 'Hector Martinez', email: 'hector.m@emx.com', role: 'editor', region: 'CECA', created_at: '2024-02-01' },
+  { id: 5, name: 'Alvaro Hernandez', email: 'alvaro@emx.com', role: 'editor', region: 'SNAP', created_at: '2024-02-05' },
+  { id: 6, name: 'Rafael Gutierrez', email: 'rafael@emx.com', role: 'admin', region: 'COEC', created_at: '2024-02-10' },
+  { id: 7, name: 'Maria Gonzalez', email: 'maria@emx.com', role: 'viewer', region: 'CECA', created_at: '2024-02-15' },
+  { id: 8, name: 'Usuario Demo', email: 'demo@emx.com', role: 'viewer', region: 'TODAS', created_at: '2024-02-20' }
+]
 
-      login: async (email: string, password: string) => {
-        try {
-          const response = await fetch('/api/auth/login', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ email, password }),
-          })
+export const useAuthStore = create<AuthState>((set, get) => ({
+  user: null,
+  isAuthenticated: false,
+  allUsers: initialUsers,
 
-          if (!response.ok) {
-            throw new Error('Error en login')
-          }
-
-          const data = await response.json()
-          
-          set({
-            user: data.user,
-            token: data.token,
-            isAuthenticated: true,
-          })
-        } catch (error) {
-          throw error
-        }
-      },
-
-      loginAsViewer: () => {
-        const viewerUser: User = {
-          id: 0,
-          name: 'Usuario Invitado',
-          email: 'viewer@guest.com',
-          role: 'viewer',
-          region: 'TODAS'
-        }
-        
-        set({
-          user: viewerUser,
-          token: null,
-          isAuthenticated: true,
-        })
-      },
-
-      logout: () => {
-        set({
-          user: null,
-          token: null,
-          isAuthenticated: false,
-        })
-      },
-
-      canEdit: () => {
-        const { user } = get()
-        return user?.role === 'admin' || user?.role === 'editor'
-      },
-
-      canAdmin: () => {
-        const { user } = get()
-        return user?.role === 'admin'
-      },
-
-      canView: (tab: string) => {
-        const { user } = get()
-        if (!user) return false
-        
-        if (user.role === 'admin') return true
-        if (user.role === 'editor') return tab !== 'users'
-        return tab === 'dashboard' || tab === 'tasks'
-      },
-    }),
-    {
-      name: 'auth-storage',
+  login: async (email: string) => {
+    // Solo permitir login a administradores registrados
+    const { allUsers } = get()
+    const user = allUsers.find(u => u.email === email && u.role === 'admin')
+    
+    if (!user) {
+      throw new Error('Solo administradores pueden hacer login con credenciales')
     }
-  )
-)
+
+    localStorage.removeItem('hasLoggedOut')
+    set({
+      user,
+      isAuthenticated: true,
+    })
+  },
+
+  loginAsViewer: () => {
+    // Crear usuario viewer temporal
+    const viewerUser: User = {
+      id: 0,
+      name: 'Usuario Invitado',
+      email: 'viewer@guest.com',
+      role: 'viewer',
+      region: 'TODAS',
+      created_at: new Date().toISOString().split('T')[0]
+    }
+
+    localStorage.removeItem('hasLoggedOut')
+    set({
+      user: viewerUser,
+      isAuthenticated: true,
+    })
+  },
+
+  logout: () => {
+    localStorage.setItem('hasLoggedOut', 'true')
+    set({
+      user: null,
+      isAuthenticated: false,
+    })
+  },
+
+  addUser: (userData) => {
+    const { allUsers } = get()
+    const newUser: User = {
+      ...userData,
+      id: Math.max(...allUsers.map(u => u.id)) + 1,
+      created_at: new Date().toISOString().split('T')[0]
+    }
+    
+    set({
+      allUsers: [...allUsers, newUser]
+    })
+  },
+
+  updateUser: (id, userData) => {
+    const { allUsers } = get()
+    set({
+      allUsers: allUsers.map(user => 
+        user.id === id ? { ...user, ...userData } : user
+      )
+    })
+  },
+
+  deleteUser: (id) => {
+    const { allUsers } = get()
+    set({
+      allUsers: allUsers.filter(user => user.id !== id)
+    })
+  },
+
+  canEdit: () => {
+    const { user } = get()
+    return user ? ['admin', 'editor'].includes(user.role) : false
+  },
+
+  canAdmin: () => {
+    const { user } = get()
+    return user?.role === 'admin'
+  },
+
+  canView: (tab: string) => {
+    const { user } = get()
+    if (!user) return false
+
+    // Admin puede ver todo
+    if (user.role === 'admin') return true
+
+    // Viewer solo puede ver: resumen, análisis, calendario
+    if (user.role === 'viewer') {
+      return ['dashboard', 'analytics', 'calendar'].includes(tab)
+    }
+
+    // Editor puede ver todo excepto usuarios
+    if (user.role === 'editor') {
+      return tab !== 'users'
+    }
+
+    return true
+  },
+}))
