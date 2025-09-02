@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react"
-import { Plus, Edit, ChevronLeft, ChevronRight } from "lucide-react"
+import { Plus, Edit, ChevronLeft, ChevronRight, Trash2 } from "lucide-react"
 import { useStore } from "../store/useStore"
 import TaskModal from "./TaskModal"
 import AdvancedFilters from "./AdvancedFilters"
 
 const KanbanBoard = () => {
-  const { tasks, loadTasks, updateTask, addTask } = useStore()
+  const { tasks, loadTasks, updateTask, addTask, deleteTask } = useStore()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingTask, setEditingTask] = useState(null)
   const [filters, setFilters] = useState({})
@@ -75,6 +75,16 @@ const KanbanBoard = () => {
     return currentIndex > 0 ? statusOrder[currentIndex - 1] : null
   }
 
+  const handleDeleteTask = async (taskId: string) => {
+    if (window.confirm('¿Estás seguro de que quieres eliminar esta tarea?')) {
+      try {
+        await deleteTask(taskId)
+      } catch (error) {
+        console.error('Error deleting task:', error)
+      }
+    }
+  }
+
   const getPriorityColor = (priority) => {
     switch (priority) {
       case 'high': return 'bg-red-100 text-red-800 border-red-200'
@@ -123,32 +133,39 @@ const KanbanBoard = () => {
               {getTasksByStatus(column.id).map((task) => (
                 <div key={task.id} className="bg-white rounded-xl p-4 shadow-md border border-gray-100 hover:shadow-lg transition-all duration-200 hover:scale-[1.02]">
                   <div className="flex justify-between items-start mb-3">
-                    <h4 className="font-semibold text-gray-900 text-sm leading-tight">{task.title}</h4>
-                    <div className="flex gap-1">
+                    <h4 className="font-semibold text-gray-900 text-sm leading-tight flex-1 pr-2">{task.title}</h4>
+                    <div className="flex gap-1 flex-shrink-0">
                       {getPrevStatus(task.status) && (
                         <button 
                           onClick={() => moveTask(task.id, getPrevStatus(task.status))} 
-                          className="text-gray-600 hover:text-gray-800 hover:bg-gray-50 p-1 rounded-md transition-colors"
-                          title="Mover atrás"
+                          className="text-gray-600 hover:text-gray-800 hover:bg-gray-100 p-1.5 rounded-md transition-colors"
+                          title={`Mover a ${getPrevStatus(task.status)}`}
                         >
-                          <ChevronLeft size={16} />
+                          <ChevronLeft size={14} />
                         </button>
                       )}
                       {getNextStatus(task.status) && (
                         <button 
                           onClick={() => moveTask(task.id, getNextStatus(task.status))} 
-                          className="text-green-600 hover:text-green-800 hover:bg-green-50 p-1 rounded-md transition-colors"
-                          title="Mover adelante"
+                          className="text-green-600 hover:text-green-800 hover:bg-green-100 p-1.5 rounded-md transition-colors"
+                          title={`Mover a ${getNextStatus(task.status)}`}
                         >
-                          <ChevronRight size={16} />
+                          <ChevronRight size={14} />
                         </button>
                       )}
                       <button 
                         onClick={() => { setEditingTask(task); setIsModalOpen(true) }} 
-                        className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 p-1 rounded-md transition-colors"
-                        title="Editar"
+                        className="text-blue-600 hover:text-blue-800 hover:bg-blue-100 p-1.5 rounded-md transition-colors"
+                        title="Editar tarea"
                       >
-                        <Edit size={16} />
+                        <Edit size={14} />
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteTask(task.id)} 
+                        className="text-red-600 hover:text-red-800 hover:bg-red-100 p-1.5 rounded-md transition-colors"
+                        title="Eliminar tarea"
+                      >
+                        <Trash2 size={14} />
                       </button>
                     </div>
                   </div>
