@@ -24,6 +24,10 @@ const AdvancedFilters = ({ onFiltersChange }: FilterProps) => {
     loadUsers()
   }, [loadUsers])
 
+  useEffect(() => {
+    console.log('Users loaded in AdvancedFilters:', users)
+  }, [users])
+
   const handleFilterChange = (key: string, value: string) => {
     const newFilters = { ...filters, [key]: value }
     setFilters(newFilters)
@@ -107,11 +111,13 @@ const AdvancedFilters = ({ onFiltersChange }: FilterProps) => {
                 className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
               >
                 <option value="">Todos los responsables</option>
-                {users.map(user => (
+                {users && users.length > 0 ? users.map(user => (
                   <option key={user.id} value={user.id}>
-                    {user.name} ({user.role})
+                    👤 {user.name} ({user.role})
                   </option>
-                ))}
+                )) : (
+                  <option disabled>Cargando usuarios...</option>
+                )}
               </select>
             </div>
 

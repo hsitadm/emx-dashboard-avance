@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { X, Save, BookOpen } from 'lucide-react'
 import apiService from '../services/api.js'
+import { useStore } from '../store/useStore'
 
 interface Task {
   id: string
@@ -22,7 +23,7 @@ interface TaskModalProps {
 }
 
 const TaskModal = ({ task, isOpen, onClose, onSave }: TaskModalProps) => {
-  const [users, setUsers] = useState<any[]>([])
+  const { users, loadUsers } = useStore()
   const [stories, setStories] = useState<any[]>([])
   const [formData, setFormData] = useState({
     title: task?.title || '',
@@ -55,35 +56,29 @@ const TaskModal = ({ task, isOpen, onClose, onSave }: TaskModalProps) => {
 
   useEffect(() => {
     if (isOpen) {
-      loadUsers()
-      loadStories()
+      loadData()
     }
   }, [isOpen])
 
-  const loadUsers = async () => {
+  const loadData = async () => {
     try {
-      const usersData = await apiService.getUsers()
-      setUsers(usersData)
-      if (!formData.assignee_id && usersData.length > 0) {
-        setFormData(prev => ({ ...prev, assignee_id: usersData[0].id.toString() }))
-      }
-    } catch (error) {
-      console.error('Error loading users:', error)
-    }
-  }
-
-  const loadStories = async () => {
-    try {
+      // Load users from store
+      await loadUsers()
+      
+      // Load stories
       const storiesData = await apiService.request('/stories')
-      // Solo mostrar historias activas o en progreso para nuevas tareas
       const activeStories = storiesData.filter((story: any) => story.status !== 'completed')
       setStories(activeStories)
       
+      // Set defaults if none selected
+      if (!formData.assignee_id && users.length > 0) {
+        setFormData(prev => ({ ...prev, assignee_id: users[0].id.toString() }))
+      }
       if (!formData.story_id && activeStories.length > 0) {
         setFormData(prev => ({ ...prev, story_id: activeStories[0].id.toString() }))
       }
     } catch (error) {
-      console.error('Error loading stories:', error)
+      console.error('Error loading data:', error)
     }
   }
 
