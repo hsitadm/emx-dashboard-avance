@@ -29,16 +29,20 @@ const UserManagement: React.FC = () => {
     { value: 'viewer', label: 'Visualizador', icon: Eye, desc: 'Solo lectura y comentarios' }
   ]
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (editingUser) {
-      updateUser(editingUser.id, formData)
-    } else {
-      addUser(formData)
+    try {
+      if (editingUser) {
+        await updateUser(editingUser.id, formData)
+      } else {
+        await addUser(formData)
+      }
+      resetForm()
+    } catch (error) {
+      console.error('Error saving user:', error)
+      // You could add a toast notification here
     }
-
-    resetForm()
   }
 
   const handleEdit = (user: UserData) => {
@@ -52,14 +56,19 @@ const UserManagement: React.FC = () => {
     setIsModalOpen(true)
   }
 
-  const handleDelete = (userId: number) => {
+  const handleDelete = async (userId: number) => {
     if (userId === currentUser?.id) {
       alert('No puedes eliminar tu propio usuario')
       return
     }
     
     if (window.confirm('¿Estás seguro de que quieres eliminar este usuario?')) {
-      deleteUser(userId)
+      try {
+        await deleteUser(userId)
+      } catch (error) {
+        console.error('Error deleting user:', error)
+        alert('Error al eliminar el usuario. Puede tener tareas asignadas.')
+      }
     }
   }
 

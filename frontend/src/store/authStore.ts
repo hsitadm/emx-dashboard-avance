@@ -19,9 +19,9 @@ interface AuthState {
   canEdit: () => boolean
   canAdmin: () => boolean
   canView: (tab: string) => boolean
-  addUser: (userData: Omit<User, 'id' | 'created_at'>) => void
-  updateUser: (id: number, userData: Partial<User>) => void
-  deleteUser: (id: number) => void
+  addUser: (userData: Omit<User, 'id' | 'created_at'>) => Promise<void>
+  updateUser: (id: number, userData: Partial<User>) => Promise<void>
+  deleteUser: (id: number) => Promise<void>
 }
 
 // Usuarios de prueba
@@ -83,33 +83,84 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     })
   },
 
-  addUser: (userData) => {
-    const { allUsers } = get()
-    const newUser: User = {
-      ...userData,
-      id: Math.max(...allUsers.map(u => u.id)) + 1,
-      created_at: new Date().toISOString().split('T')[0]
+  addUser: async (userData) => {
+    try {
+      // Create in database via API
+      const response = await fetch('/api/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(userData)
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to create user')
+      }
+      
+      const newUser = await response.json()
+      
+      // Update local state
+      const { allUsers } = get()
+      set({
+        allUsers: [...allUsers, newUser]
+      })
+    } catch (error) {
+      console.error('Error creating user:', error)
+      throw error
     }
-    
-    set({
-      allUsers: [...allUsers, newUser]
-    })
   },
 
-  updateUser: (id, userData) => {
-    const { allUsers } = get()
-    set({
-      allUsers: allUsers.map(user => 
-        user.id === id ? { ...user, ...userData } : user
-      )
-    })
+  updateUser: async (id, userData) => {
+    try {
+      // Update in database via API
+      const response = await fetch(`/api/users/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(userData)
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to update user')
+      }
+      
+      const updatedUser = await response.json()
+      
+      // Update local state
+      const { allUsers } = get()
+      set({
+        allUsers: allUsers.map(user => 
+          user.id === id ? { ...user, ...updatedUser } : user
+        )
+      })
+    } catch (error) {
+      console.error('Error updating user:', error)
+      throw error
+    }
   },
 
-  deleteUser: (id) => {
-    const { allUsers } = get()
-    set({
-      allUsers: allUsers.filter(user => user.id !== id)
-    })
+  deleteUser: async (id) => {
+    try {
+      // Delete from database via API
+      const response = await fetch(`/api/users/${id}`, {
+        method: 'DELETE'
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to delete user')
+      }
+      
+      // Update local state
+      const { allUsers } = get()
+      set({
+        allUsers: allUsers.filter(user => user.id !== id)
+      })
+    } catch (error) {
+      console.error('Error deleting user:', error)
+      throw error
+    }
   },
 
   canEdit: () => {
