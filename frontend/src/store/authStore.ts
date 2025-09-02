@@ -13,6 +13,7 @@ interface AuthState {
   user: User | null
   isAuthenticated: boolean
   allUsers: User[]
+  loadAllUsers: () => Promise<void>
   login: (email: string) => Promise<void>
   loginAsViewer: () => void
   logout: () => void
@@ -39,22 +40,49 @@ const initialUsers: User[] = [
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   isAuthenticated: false,
-  allUsers: initialUsers,
+  allUsers: [],
+
+  loadAllUsers: async () => {
+    try {
+      const response = await fetch('/api/users')
+      if (!response.ok) {
+        throw new Error('Failed to load users')
+      }
+      const users = await response.json()
+      console.log('Loaded users from API:', users)
+      set({ allUsers: users })
+    } catch (error) {
+      console.error('Error loading users:', error)
+      // Fallback to initial users if API fails
+      set({ allUsers: initialUsers })
+    }
+  },
 
   login: async (email: string) => {
-    // Solo permitir login a administradores registrados
-    const { allUsers } = get()
-    const user = allUsers.find(u => u.email === email && u.role === 'admin')
-    
-    if (!user) {
-      throw new Error('Solo administradores pueden hacer login con credenciales')
-    }
+    try {
+      // Cargar usuarios si no están cargados
+      const { allUsers } = get()
+      if (allUsers.length === 0) {
+        await get().loadAllUsers()
+      }
+      
+      // Buscar usuario admin
+      const { allUsers: updatedUsers } = get()
+      const user = updatedUsers.find(u => u.email === email && u.role === 'admin')
+      
+      if (!user) {
+        throw new Error('Solo administradores pueden hacer login con credenciales')
+      }
 
-    localStorage.removeItem('hasLoggedOut')
-    set({
-      user,
-      isAuthenticated: true,
-    })
+      localStorage.removeItem('hasLoggedOut')
+      set({
+        user,
+        isAuthenticated: true,
+      })
+    } catch (error) {
+      console.error('Login error:', error)
+      throw error
+    }
   },
 
   loginAsViewer: () => {
@@ -123,10 +151,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       })
       
       if (!response.ok) {
-        throw new Error('Failed to update user')
+        const error = await response.text()
+        console.error('API Error:', error)
+        throw new Error(`Failed to update user: ${response.status}`)
       }
       
       const updatedUser = await response.json()
+      console.log('User updated successfully:', updatedUser)
       
       // Update local state
       const { allUsers } = get()

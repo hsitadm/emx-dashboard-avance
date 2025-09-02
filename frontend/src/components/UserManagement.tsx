@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Plus, Edit, Trash2, User, Shield, Eye, Save, X } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
 
@@ -12,7 +12,7 @@ interface UserData {
 }
 
 const UserManagement: React.FC = () => {
-  const { canAdmin, user: currentUser, allUsers, addUser, updateUser, deleteUser } = useAuthStore()
+  const { canAdmin, user: currentUser, allUsers, loadAllUsers, addUser, updateUser, deleteUser } = useAuthStore()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<UserData | null>(null)
   const [formData, setFormData] = useState({
@@ -21,6 +21,11 @@ const UserManagement: React.FC = () => {
     role: 'viewer' as 'admin' | 'editor' | 'viewer',
     region: 'TODAS'
   })
+
+  // Load users when component mounts
+  useEffect(() => {
+    loadAllUsers()
+  }, [])
 
   const regions = ['TODAS', 'CECA', 'SOLA', 'MX', 'SNAP', 'COEC']
   const roles = [
