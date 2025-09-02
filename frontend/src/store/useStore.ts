@@ -30,12 +30,14 @@ interface Notification {
 
 interface Store {
   user: User | null
+  users: User[]
   tasks: Task[]
   notifications: Notification[]
   loading: boolean
   
   // Actions
   setUser: (user: User) => void
+  loadUsers: () => Promise<void>
   loadTasks: (filters?: any) => Promise<void>
   addTask: (task: Omit<Task, 'id'>) => Promise<void>
   updateTask: (id: string, updates: Partial<Task>) => Promise<void>
@@ -45,11 +47,25 @@ interface Store {
 
 export const useStore = create<Store>((set, get) => ({
   user: null,
+  users: [],
   tasks: [],
   notifications: [],
   loading: false,
 
   setUser: (user) => set({ user }),
+
+  loadUsers: async () => {
+    try {
+      const users = await apiService.request('/users')
+      set({ users })
+    } catch (error) {
+      console.error('Error loading users:', error)
+      get().addNotification({
+        message: 'Error al cargar los usuarios',
+        type: 'error'
+      })
+    }
+  },
 
   loadTasks: async (filters = {}) => {
     try {

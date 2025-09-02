@@ -1,11 +1,13 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Filter, X, Calendar, User, MapPin } from 'lucide-react'
+import { useStore } from '../store/useStore'
 
 interface FilterProps {
   onFiltersChange: (filters: any) => void
 }
 
 const AdvancedFilters = ({ onFiltersChange }: FilterProps) => {
+  const { users, loadUsers } = useStore()
   const [isOpen, setIsOpen] = useState(false)
   const [filters, setFilters] = useState({
     region: '',
@@ -17,7 +19,10 @@ const AdvancedFilters = ({ onFiltersChange }: FilterProps) => {
   })
 
   const regions = ['TODAS', 'CECA', 'SOLA', 'MX', 'SNAP', 'COEC']
-  const assignees = ['María González', 'Carlos Ruiz', 'Ana López', 'Pedro Martín', 'Laura Jiménez']
+
+  useEffect(() => {
+    loadUsers()
+  }, [loadUsers])
 
   const handleFilterChange = (key: string, value: string) => {
     const newFilters = { ...filters, [key]: value }
@@ -102,8 +107,10 @@ const AdvancedFilters = ({ onFiltersChange }: FilterProps) => {
                 className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
               >
                 <option value="">Todos los responsables</option>
-                {assignees.map(assignee => (
-                  <option key={assignee} value={assignee}>{assignee}</option>
+                {users.map(user => (
+                  <option key={user.id} value={user.id}>
+                    {user.name} ({user.role})
+                  </option>
                 ))}
               </select>
             </div>
