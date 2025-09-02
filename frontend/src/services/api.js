@@ -1,12 +1,40 @@
-const API_BASE_URL = 'http://localhost:3001/api'
+const API_BASE_URL = '/api'
+
+// Función para obtener el token del store
+const getAuthToken = () => {
+  try {
+    const authStorage = localStorage.getItem('auth-storage')
+    if (authStorage) {
+      const parsed = JSON.parse(authStorage)
+      return parsed.state?.token || null
+    }
+  } catch (error) {
+    console.error('Error getting auth token:', error)
+  }
+  return null
+}
 
 class ApiService {
+  constructor() {
+    this.baseURL = API_BASE_URL
+  }
+
   async request(endpoint, options = {}) {
-    const url = `${API_BASE_URL}${endpoint}`
+    const url = `${this.baseURL}${endpoint}`
+    
+    // Obtener token y agregarlo a headers
+    const token = getAuthToken()
+    const headers = {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    }
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+
     const config = {
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       ...options,
     }
 
@@ -24,45 +52,53 @@ class ApiService {
     }
   }
 
-  // Tasks
-  async getTasks(filters = {}) {
-    const params = new URLSearchParams()
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value) params.append(key, value)
-    })
-    
-    const query = params.toString() ? `?${params.toString()}` : ''
-    return this.request(`/tasks${query}`)
+  // Stories
+  async getStories() {
+    return this.request('/stories')
   }
 
-  async createTask(taskData) {
-    // Convertir story_id a número si existe
-    const processedData = {
-      ...taskData,
-      story_id: taskData.story_id ? parseInt(taskData.story_id) : undefined
-    }
-    
+  async createStory(story) {
+    return this.request('/stories', {
+      method: 'POST',
+      body: JSON.stringify(story),
+    })
+  }
+
+  async updateStory(id, story) {
+    return this.request(`/stories/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(story),
+    })
+  }
+
+  async deleteStory(id) {
+    return this.request(`/stories/${id}`, {
+      method: 'DELETE',
+    })
+  }
+
+  // Tasks
+  async getTasks() {
+    return this.request('/tasks')
+  }
+
+  async createTask(task) {
     return this.request('/tasks', {
       method: 'POST',
-      body: JSON.stringify(processedData),
+      body: JSON.stringify(task),
     })
   }
 
-  async updateTask(id, taskData) {
+  async updateTask(id, task) {
     return this.request(`/tasks/${id}`, {
       method: 'PUT',
-      body: JSON.stringify(taskData),
+      body: JSON.stringify(task),
     })
   }
 
-  async getTaskComments(taskId) {
-    return this.request(`/tasks/${taskId}/comments`)
-  }
-
-  async addTaskComment(taskId, content, authorId = 8) {
-    return this.request(`/tasks/${taskId}/comments`, {
-      method: 'POST',
-      body: JSON.stringify({ content, author_id: authorId }),
+  async deleteTask(id) {
+    return this.request(`/tasks/${id}`, {
+      method: 'DELETE',
     })
   }
 
@@ -71,17 +107,17 @@ class ApiService {
     return this.request('/milestones')
   }
 
-  async createMilestone(milestoneData) {
+  async createMilestone(milestone) {
     return this.request('/milestones', {
       method: 'POST',
-      body: JSON.stringify(milestoneData),
+      body: JSON.stringify(milestone),
     })
   }
 
-  async updateMilestone(id, milestoneData) {
+  async updateMilestone(id, milestone) {
     return this.request(`/milestones/${id}`, {
       method: 'PUT',
-      body: JSON.stringify(milestoneData),
+      body: JSON.stringify(milestone),
     })
   }
 
@@ -96,6 +132,26 @@ class ApiService {
     return this.request('/users')
   }
 
+  async createUser(user) {
+    return this.request('/users', {
+      method: 'POST',
+      body: JSON.stringify(user),
+    })
+  }
+
+  async updateUser(id, user) {
+    return this.request(`/users/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(user),
+    })
+  }
+
+  async deleteUser(id) {
+    return this.request(`/users/${id}`, {
+      method: 'DELETE',
+    })
+  }
+
   // Dashboard
   async getDashboardMetrics() {
     return this.request('/dashboard/metrics')
@@ -107,4 +163,5 @@ class ApiService {
   }
 }
 
-export default new ApiService()
+export const apiService = new ApiService()
+export default apiService

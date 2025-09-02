@@ -12,61 +12,61 @@ interface User {
 
 interface AuthState {
   user: User | null
+  token: string | null
   isAuthenticated: boolean
-  allUsers: User[]
-  login: (email: string) => Promise<void>
+  login: (email: string, password: string) => Promise<void>
   loginAsViewer: () => void
   logout: () => void
   canEdit: () => boolean
   canAdmin: () => boolean
   canView: (tab: string) => boolean
-  addUser: (userData: Omit<User, 'id' | 'created_at'>) => void
-  updateUser: (id: number, userData: Partial<User>) => void
-  deleteUser: (id: number) => void
 }
-
-// Usuarios de prueba
-const initialUsers: User[] = [
-  { id: 1, name: 'Admin User', email: 'admin@emx.com', role: 'admin', region: 'TODAS', created_at: '2024-01-15' },
-  { id: 2, name: 'Editor User', email: 'editor@emx.com', role: 'editor', region: 'CECA', created_at: '2024-02-10' },
-  { id: 3, name: 'Viewer User', email: 'viewer@emx.com', role: 'viewer', region: 'SOLA', created_at: '2024-03-05' }
-]
 
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
       user: null,
+      token: null,
       isAuthenticated: false,
-      allUsers: initialUsers,
 
-      login: async (email: string) => {
-        // Solo permitir login a administradores registrados
-        const { allUsers } = get()
-        const user = allUsers.find(u => u.email === email && u.role === 'admin')
-        
-        if (!user) {
-          throw new Error('Solo administradores pueden hacer login con credenciales')
+      login: async (email: string, password: string) => {
+        try {
+          const response = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email, password }),
+          })
+
+          if (!response.ok) {
+            throw new Error('Error en login')
+          }
+
+          const data = await response.json()
+          
+          set({
+            user: data.user,
+            token: data.token,
+            isAuthenticated: true,
+          })
+        } catch (error) {
+          throw error
         }
-
-        set({
-          user,
-          isAuthenticated: true,
-        })
       },
 
       loginAsViewer: () => {
-        // Crear usuario viewer temporal
         const viewerUser: User = {
           id: 0,
           name: 'Usuario Invitado',
           email: 'viewer@guest.com',
           role: 'viewer',
-          region: 'TODAS',
-          created_at: new Date().toISOString().split('T')[0]
+          region: 'TODAS'
         }
-
+        
         set({
           user: viewerUser,
+          token: null,
           isAuthenticated: true,
         })
       },
@@ -74,42 +74,14 @@ export const useAuthStore = create<AuthState>()(
       logout: () => {
         set({
           user: null,
+          token: null,
           isAuthenticated: false,
-        })
-      },
-
-      addUser: (userData) => {
-        const { allUsers } = get()
-        const newUser: User = {
-          ...userData,
-          id: Math.max(...allUsers.map(u => u.id)) + 1,
-          created_at: new Date().toISOString().split('T')[0]
-        }
-        
-        set({
-          allUsers: [...allUsers, newUser]
-        })
-      },
-
-      updateUser: (id, userData) => {
-        const { allUsers } = get()
-        set({
-          allUsers: allUsers.map(user => 
-            user.id === id ? { ...user, ...userData } : user
-          )
-        })
-      },
-
-      deleteUser: (id) => {
-        const { allUsers } = get()
-        set({
-          allUsers: allUsers.filter(user => user.id !== id)
         })
       },
 
       canEdit: () => {
         const { user } = get()
-        return user ? ['admin', 'editor'].includes(user.role) : false
+        return user?.role === 'admin' || user?.role === 'editor'
       },
 
       canAdmin: () => {
@@ -120,21 +92,10 @@ export const useAuthStore = create<AuthState>()(
       canView: (tab: string) => {
         const { user } = get()
         if (!user) return false
-
-        // Admin puede ver todo
+        
         if (user.role === 'admin') return true
-
-        // Viewer solo puede ver: resumen, análisis, calendario
-        if (user.role === 'viewer') {
-          return ['dashboard', 'analytics', 'calendar'].includes(tab)
-        }
-
-        // Editor puede ver todo excepto usuarios
-        if (user.role === 'editor') {
-          return tab !== 'users'
-        }
-
-        return true
+        if (user.role === 'editor') return tab !== 'users'
+        return tab === 'dashboard' || tab === 'tasks'
       },
     }),
     {

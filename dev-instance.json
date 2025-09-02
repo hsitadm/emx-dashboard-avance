@@ -1,0 +1,131 @@
+{
+    "Groups": [],
+    "Instances": [
+        {
+            "AmiLaunchIndex": 0,
+            "ImageId": "ami-0c02fb55956c7d316",
+            "InstanceId": "i-0020703df7e9c584e",
+            "InstanceType": "t3.small",
+            "KeyName": "emx-dashboard-key",
+            "LaunchTime": "2025-09-02T13:12:04+00:00",
+            "Monitoring": {
+                "State": "disabled"
+            },
+            "Placement": {
+                "AvailabilityZone": "us-east-1a",
+                "GroupName": "",
+                "Tenancy": "default"
+            },
+            "PrivateDnsName": "ip-10-0-1-28.ec2.internal",
+            "PrivateIpAddress": "10.0.1.28",
+            "ProductCodes": [],
+            "PublicDnsName": "",
+            "State": {
+                "Code": 0,
+                "Name": "pending"
+            },
+            "StateTransitionReason": "",
+            "SubnetId": "subnet-0d86011d64a85bcdb",
+            "VpcId": "vpc-06ea56dba142a80ea",
+            "Architecture": "x86_64",
+            "BlockDeviceMappings": [],
+            "ClientToken": "3899c3e9-0e2c-4a8a-82b4-73a84f476c3a",
+            "EbsOptimized": false,
+            "EnaSupport": true,
+            "Hypervisor": "xen",
+            "NetworkInterfaces": [
+                {
+                    "Attachment": {
+                        "AttachTime": "2025-09-02T13:12:04+00:00",
+                        "AttachmentId": "eni-attach-0d6861e7361e801a0",
+                        "DeleteOnTermination": true,
+                        "DeviceIndex": 0,
+                        "Status": "attaching",
+                        "NetworkCardIndex": 0
+                    },
+                    "Description": "",
+                    "Groups": [
+                        {
+                            "GroupName": "emx-dashboard-new-EMxWebSecurityGroup-EKY5WiuqtjUX",
+                            "GroupId": "sg-0ef6dcb56558c4a3b"
+                        }
+                    ],
+                    "Ipv6Addresses": [],
+                    "MacAddress": "0a:ff:c8:60:ed:b9",
+                    "NetworkInterfaceId": "eni-0390f8139eee69ad8",
+                    "OwnerId": "792435401515",
+                    "PrivateDnsName": "ip-10-0-1-28.ec2.internal",
+                    "PrivateIpAddress": "10.0.1.28",
+                    "PrivateIpAddresses": [
+                        {
+                            "Primary": true,
+                            "PrivateDnsName": "ip-10-0-1-28.ec2.internal",
+                            "PrivateIpAddress": "10.0.1.28"
+                        }
+                    ],
+                    "SourceDestCheck": true,
+                    "Status": "in-use",
+                    "SubnetId": "subnet-0d86011d64a85bcdb",
+                    "VpcId": "vpc-06ea56dba142a80ea",
+                    "InterfaceType": "interface"
+                }
+            ],
+            "RootDeviceName": "/dev/xvda",
+            "RootDeviceType": "ebs",
+            "SecurityGroups": [
+                {
+                    "GroupName": "emx-dashboard-new-EMxWebSecurityGroup-EKY5WiuqtjUX",
+                    "GroupId": "sg-0ef6dcb56558c4a3b"
+                }
+            ],
+            "SourceDestCheck": true,
+            "StateReason": {
+                "Code": "pending",
+                "Message": "pending"
+            },
+            "Tags": [
+                {
+                    "Key": "Environment",
+                    "Value": "Development"
+                },
+                {
+                    "Key": "Project",
+                    "Value": "EMx-Transition"
+                },
+                {
+                    "Key": "Name",
+                    "Value": "EMx-Dashboard-DEV"
+                }
+            ],
+            "VirtualizationType": "hvm",
+            "CpuOptions": {
+                "CoreCount": 1,
+                "ThreadsPerCore": 2
+            },
+            "CapacityReservationSpecification": {
+                "CapacityReservationPreference": "open"
+            },
+            "MetadataOptions": {
+                "State": "pending",
+                "HttpTokens": "optional",
+                "HttpPutResponseHopLimit": 1,
+                "HttpEndpoint": "enabled",
+                "HttpProtocolIpv6": "disabled",
+                "InstanceMetadataTags": "disabled"
+            },
+            "EnclaveOptions": {
+                "Enabled": false
+            },
+            "PrivateDnsNameOptions": {
+                "HostnameType": "ip-name",
+                "EnableResourceNameDnsARecord": false,
+                "EnableResourceNameDnsAAAARecord": false
+            },
+            "MaintenanceOptions": {
+                "AutoRecovery": "default"
+            }
+        }
+    ],
+    "OwnerId": "792435401515",
+    "ReservationId": "r-0dbfa83deb4314cf8"
+}

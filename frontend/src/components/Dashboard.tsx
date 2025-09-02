@@ -29,7 +29,7 @@ const Dashboard = () => {
     { id: 'calendar', label: 'Calendario', icon: Calendar, key: 'calendar' },
     { id: 'analytics', label: 'Análisis', icon: BarChart3, key: 'analytics' },
     { id: 'gamification', label: 'Logros', icon: Trophy, key: 'gamification' },
-    { id: 'users', label: 'Usuarios', icon: Users, key: 'users', adminOnly: true }
+    { id: 'users', label: 'Usuarios', icon: Users, key: 'users' }
   ]
 
   // Filtrar vistas según permisos del usuario

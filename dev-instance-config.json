@@ -1,0 +1,17 @@
+{
+    "ImageId": "ami-0c02fb55956c7d316",
+    "InstanceType": "t3.small",
+    "KeyName": "emx-dashboard-key",
+    "SecurityGroupIds": ["sg-0ef6dcb56558c4a3b"],
+    "SubnetId": "subnet-0d86011d64a85bcdb",
+    "TagSpecifications": [
+        {
+            "ResourceType": "instance",
+            "Tags": [
+                {"Key": "Name", "Value": "EMx-Dashboard-DEV"},
+                {"Key": "Environment", "Value": "Development"},
+                {"Key": "Project", "Value": "EMx-Transition"}
+            ]
+        }
+    ]
+}
