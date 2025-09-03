@@ -10,12 +10,14 @@ const StoriesView = () => {
   const [showStoryModal, setShowStoryModal] = useState(false)
   const [editingStory, setEditingStory] = useState<any>(null)
   const [users, setUsers] = useState<any[]>([])
+  const [milestones, setMilestones] = useState<any[]>([])
   const [storyForm, setStoryForm] = useState({
     title: '',
     description: '',
     priority: 'medium',
     region: 'TODAS',
     assignee_id: '',
+    milestone_id: '',
     start_date: '',
     target_date: ''
   })
@@ -23,6 +25,7 @@ const StoriesView = () => {
   useEffect(() => {
     loadStories()
     loadUsers()
+    loadMilestones()
   }, [])
 
   const loadStories = async () => {
@@ -40,6 +43,15 @@ const StoriesView = () => {
       setUsers(usersData)
     } catch (error) {
       console.error('Error loading users:', error)
+    }
+  }
+
+  const loadMilestones = async () => {
+    try {
+      const milestonesData = await apiService.getMilestones()
+      setMilestones(milestonesData)
+    } catch (error) {
+      console.error('Error loading milestones:', error)
     }
   }
 
@@ -66,6 +78,7 @@ const StoriesView = () => {
       priority: 'medium',
       region: 'TODAS',
       assignee_id: users.length > 0 ? users[0].id.toString() : '',
+      milestone_id: '',
       start_date: '',
       target_date: ''
     })
@@ -80,6 +93,7 @@ const StoriesView = () => {
       priority: story.priority,
       region: story.region || 'TODAS',
       assignee_id: story.assignee_id?.toString() || '',
+      milestone_id: story.milestone_id?.toString() || '',
       start_date: story.start_date || '',
       target_date: story.target_date || ''
     })
@@ -235,6 +249,12 @@ const StoriesView = () => {
                     <Calendar size={14} />
                     <span>{story.target_date ? new Date(story.target_date).toLocaleDateString() : 'Sin fecha'}</span>
                   </div>
+                  {story.milestone_title && (
+                    <div className="flex items-center gap-1">
+                      <Target size={14} />
+                      <span className="text-blue-600 font-medium">{story.milestone_title}</span>
+                    </div>
+                  )}
                   <div className={`flex items-center gap-1 ${getPriorityColor(story.priority)}`}>
                     <span>●</span>
                     <span className="capitalize">{story.priority}</span>
@@ -320,6 +340,12 @@ const StoriesView = () => {
                     <span className="text-gray-500">Fecha objetivo:</span>
                     <span>{selectedStory.target_date ? new Date(selectedStory.target_date).toLocaleDateString() : 'Sin fecha'}</span>
                   </div>
+                  {selectedStory.milestone_title && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Hito:</span>
+                      <span className="text-blue-600 font-medium">{selectedStory.milestone_title}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <span className="text-gray-500">Progreso general:</span>
                     <span className="font-medium">{selectedStory.progress || 0}%</span>
@@ -490,6 +516,24 @@ const StoriesView = () => {
                   {users.map(user => (
                     <option key={user.id} value={user.id}>
                       {user.name} ({user.role})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Hito
+                </label>
+                <select
+                  value={storyForm.milestone_id}
+                  onChange={(e) => setStoryForm({...storyForm, milestone_id: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="">Sin hito asignado</option>
+                  {milestones.map(milestone => (
+                    <option key={milestone.id} value={milestone.id}>
+                      {milestone.title}
                     </option>
                   ))}
                 </select>

@@ -123,4 +123,22 @@ router.delete('/:id', async (req, res) => {
   }
 })
 
+// GET /api/stories/:id/tasks - Get tasks for a specific story
+router.get('/:id/tasks', async (req, res) => {
+  try {
+    const { id } = req.params
+    const result = await db.query(`
+      SELECT t.*, u.name as assignee_name 
+      FROM tasks t
+      LEFT JOIN users u ON t.assignee_id = u.id
+      WHERE t.story_id = ?
+      ORDER BY t.created_at DESC
+    `, [id])
+    res.json(result.rows)
+  } catch (error) {
+    console.error('Error fetching story tasks:', error)
+    res.status(500).json({ error: 'Failed to fetch story tasks' })
+  }
+})
+
 export default router

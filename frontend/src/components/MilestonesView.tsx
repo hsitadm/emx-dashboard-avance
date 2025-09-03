@@ -70,25 +70,26 @@ const MilestonesView = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
+      const milestoneData = {
+        ...formData,
+        story_ids: selectedStories
+      }
+      
       let milestone
       if (editingMilestone) {
-        milestone = await api.updateMilestone(editingMilestone.id, formData)
+        milestone = await api.updateMilestone(editingMilestone.id, milestoneData)
       } else {
-        milestone = await api.createMilestone(formData)
+        milestone = await api.createMilestone(milestoneData)
       }
       
-      // Update stories with milestone_id
-      if (selectedStories.length > 0) {
-        for (const storyId of selectedStories) {
-          await api.updateStory(storyId, { milestone_id: milestone.id || editingMilestone.id })
-        }
-      }
-      
-      await loadMilestones()
-      await loadStories()
+      // Close modal first to prevent flashing
       setShowModal(false)
       setEditingMilestone(null)
       setSelectedStories([])
+      
+      // Then reload data
+      await loadMilestones()
+      await loadStories()
     } catch (error) {
       console.error('Error saving milestone:', error)
     }

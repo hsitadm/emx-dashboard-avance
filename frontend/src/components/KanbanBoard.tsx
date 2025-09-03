@@ -23,14 +23,11 @@ const KanbanBoard = () => {
   const getFilteredTasks = () => {
     return tasks.filter(task => {
       // Debug: log filter values
-      console.log('Filter debug:', { 
-        filters, 
-        task: { id: task.id, assignee_id: task.assignee_id, region: task.region, priority: task.priority }
-      })
       
       if (filters.region && filters.region !== "all" && filters.region !== "" && task.region !== filters.region) return false
       if (filters.assignee && filters.assignee !== "all" && filters.assignee !== "" && task.assignee_id !== parseInt(filters.assignee)) return false
       if (filters.priority && filters.priority !== "all" && filters.priority !== "" && task.priority !== filters.priority) return false
+      if (filters.story && filters.story !== "all" && filters.story !== "" && task.story_id !== parseInt(filters.story)) return false
       return true
     })
   }

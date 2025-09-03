@@ -49,7 +49,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         throw new Error('Failed to load users')
       }
       const users = await response.json()
-      console.log('Loaded users from API:', users)
       set({ allUsers: users })
     } catch (error) {
       console.error('Error loading users:', error)
@@ -157,7 +156,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
       
       const updatedUser = await response.json()
-      console.log('User updated successfully:', updatedUser)
       
       // Update local state
       const { allUsers } = get()

@@ -9,6 +9,7 @@ router.get('/', async (req, res) => {
     const result = await db.query(`
       SELECT 
         m.*,
+        COUNT(s.id) as total_stories,
         COUNT(CASE WHEN s.id IS NOT NULL THEN 1 END) as stories_count,
         COALESCE(AVG(
           CASE 
@@ -20,9 +21,9 @@ router.get('/', async (req, res) => {
             ELSE NULL
           END
         ), 0) as calculated_progress,
-        GROUP_CONCAT(CASE WHEN s.title IS NOT NULL THEN s.title END, '|') as story_titles
+        GROUP_CONCAT(s.title, '|') as story_titles
       FROM milestones m
-      LEFT JOIN stories s ON s.milestone_id = m.id
+      LEFT JOIN stories s ON m.id = s.milestone_id
       GROUP BY m.id, m.title, m.description, m.due_date, m.status, m.region, m.created_at
       ORDER BY m.due_date ASC
     `)
@@ -62,7 +63,7 @@ router.get('/:id', async (req, res) => {
           END
         ), 0) as calculated_progress
       FROM milestones m
-      LEFT JOIN stories s ON s.milestone_id = m.id
+      LEFT JOIN stories s ON m.id = s.milestone_id
       WHERE m.id = ?
       GROUP BY m.id
     `, [id])
@@ -124,7 +125,7 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params
-    const { title, description, due_date, status, region, story_ids } = req.body
+    const { title, description, due_date, status, region } = req.body
     
     const result = await db.query(
       'UPDATE milestones SET title = ?, description = ?, due_date = ?, status = ?, region = ? WHERE id = ? RETURNING *',
@@ -133,18 +134,6 @@ router.put('/:id', async (req, res) => {
     
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Milestone not found' })
-    }
-
-    // Update story associations if provided
-    if (story_ids !== undefined) {
-      // Remove existing associations
-      await db.query('UPDATE stories SET milestone_id = NULL WHERE milestone_id = ?', [id])
-      // Add new associations
-      if (story_ids && story_ids.length > 0) {
-        for (const storyId of story_ids) {
-          await db.query('UPDATE stories SET milestone_id = ? WHERE id = ?', [id, storyId])
-        }
-      }
     }
     
     res.json(result.rows[0])
