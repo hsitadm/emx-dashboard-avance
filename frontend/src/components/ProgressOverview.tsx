@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { TrendingUp, Target, CheckCircle, Clock, AlertTriangle, BookOpen, Calendar, ChevronDown, ChevronRight } from 'lucide-react'
+import { TrendingUp, Target, CheckCircle, Clock, AlertTriangle, BookOpen, Calendar, ChevronDown, ChevronRight, CheckSquare } from 'lucide-react'
 import api from '../services/api.js'
 
 const ProgressOverview = () => {
@@ -164,10 +164,10 @@ const ProgressOverview = () => {
         <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-lg hover:shadow-xl transition-shadow duration-300 transform hover:-translate-y-1">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-600 text-sm">Historias Activas</p>
-              <p className="text-2xl font-semibold text-gray-900">{filteredStories.length}</p>
+              <p className="text-gray-600 text-sm">Tareas Totales</p>
+              <p className="text-2xl font-semibold text-gray-900">{tasks.length}</p>
             </div>
-            <BookOpen size={24} className="text-gray-400" />
+            <CheckSquare size={24} className="text-gray-400" />
           </div>
         </div>
       </div>
