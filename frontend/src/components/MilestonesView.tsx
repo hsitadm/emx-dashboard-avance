@@ -225,15 +225,15 @@ const MilestonesView = () => {
                 <div className="flex gap-1">
                   <button 
                     onClick={() => { setEditingMilestone(milestone); setShowModal(true) }} 
-                    className="flex-1 text-xs px-2 py-1 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors"
+                    className="flex-1 text-xs px-2 py-1 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors flex items-center justify-center"
                   >
-                    Editar
+                    <Edit size={12} />
                   </button>
                   <button 
                     onClick={() => handleDeleteMilestone(milestone.id)} 
-                    className="flex-1 text-xs px-2 py-1 bg-red-50 text-red-600 rounded hover:bg-red-100 transition-colors"
+                    className="flex-1 text-xs px-2 py-1 bg-red-50 text-red-600 rounded hover:bg-red-100 transition-colors flex items-center justify-center"
                   >
-                    Eliminar
+                    <Trash2 size={12} />
                   </button>
                 </div>
               </div>
