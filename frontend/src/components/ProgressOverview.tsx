@@ -236,7 +236,7 @@ const ProgressOverview = () => {
           </div>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {stories.map((story) => {
             const storyTasks = getTasksByStoryId(story.id)
             const isExpanded = expandedStory === story.id
@@ -244,24 +244,24 @@ const ProgressOverview = () => {
             return (
               <div key={story.id} className="bg-white rounded-lg border border-gray-200 shadow-sm">
                 <div 
-                  className="p-6 cursor-pointer hover:bg-gray-50 transition-colors"
+                  className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
                   onClick={() => toggleStoryExpansion(story.id)}
                 >
                   <div className="flex items-start justify-between mb-2">
-                    <h3 className="text-lg font-semibold text-gray-900 flex-1">{story.title}</h3>
-                    {isExpanded ? <ChevronDown size={20} className="text-gray-400" /> : <ChevronRight size={20} className="text-gray-400" />}
+                    <h3 className="text-base font-semibold text-gray-900 flex-1 pr-2">{story.title}</h3>
+                    {isExpanded ? <ChevronDown size={18} className="text-gray-400" /> : <ChevronRight size={18} className="text-gray-400" />}
                   </div>
-                  <p className="text-gray-600 text-sm mb-4">{story.description}</p>
+                  <p className="text-gray-600 text-sm mb-3 line-clamp-2">{story.description}</p>
                   
                   {/* Story Progress */}
-                  <div className="mb-4">
-                    <div className="flex justify-between items-center mb-2">
+                  <div className="mb-3">
+                    <div className="flex justify-between items-center mb-1">
                       <span className="text-sm font-medium text-gray-700">Progreso</span>
                       <span className="text-sm font-semibold text-gray-900">{Math.round(story.story_progress || 0)}%</span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="w-full bg-gray-200 rounded-full h-1.5">
                       <div 
-                        className="bg-gray-600 h-2 rounded-full transition-all duration-500" 
+                        className="bg-gray-600 h-1.5 rounded-full transition-all duration-500" 
                         style={{ width: `${story.story_progress || 0}%` }}
                       ></div>
                     </div>
@@ -269,12 +269,17 @@ const ProgressOverview = () => {
 
                   {/* Story Metadata */}
                   <div className="flex items-center justify-between text-sm">
-                    <span className={`px-2 py-1 rounded text-xs font-medium border ${getStatusColor(story.status)}`}>
-                      {getStatusIcon(story.status)} {story.status === 'completed' ? 'Completada' : story.status === 'in-progress' ? 'En Progreso' : 'Planificación'}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2 py-1 rounded text-xs font-medium border ${getStatusColor(story.status)}`}>
+                        {getStatusIcon(story.status)} {story.status === 'completed' ? 'Completada' : story.status === 'in-progress' ? 'En Progreso' : 'Planificación'}
+                      </span>
+                      <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-medium">
+                        📋 {storyTasks.length} tareas
+                      </span>
+                    </div>
                     {story.milestone_title && (
                       <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">
-                        🎯 {story.milestone_title}
+                        🎯 {story.milestone_title.length > 12 ? story.milestone_title.substring(0, 12) + '...' : story.milestone_title}
                       </span>
                     )}
                   </div>
@@ -282,22 +287,22 @@ const ProgressOverview = () => {
 
                 {/* Expanded Tasks */}
                 {isExpanded && (
-                  <div className="border-t border-gray-200 p-4 bg-gray-50">
-                    <h4 className="text-sm font-semibold text-gray-900 mb-3">
+                  <div className="border-t border-gray-200 p-3 bg-gray-50">
+                    <h4 className="text-sm font-semibold text-gray-900 mb-2">
                       Tareas ({storyTasks.length})
                     </h4>
                     {storyTasks.length > 0 ? (
                       <div className="space-y-2">
                         {storyTasks.map((task) => (
-                          <div key={task.id} className="bg-white rounded p-3 border border-gray-200">
-                            <div className="flex justify-between items-start mb-2">
-                              <h5 className="text-sm font-medium text-gray-900">{task.title}</h5>
-                              <span className={`px-2 py-1 rounded text-xs font-medium border ${getStatusColor(task.status)}`}>
+                          <div key={task.id} className="bg-white rounded p-2 border border-gray-200">
+                            <div className="flex justify-between items-start mb-1">
+                              <h5 className="text-sm font-medium text-gray-900 flex-1 pr-2">{task.title}</h5>
+                              <span className={`px-1.5 py-0.5 rounded text-xs font-medium border ${getStatusColor(task.status)}`}>
                                 {task.status === 'completed' ? 'Completada' : task.status === 'in-progress' ? 'En Progreso' : 'Planificación'}
                               </span>
                             </div>
                             {task.description && (
-                              <p className="text-xs text-gray-600 mb-2">{task.description}</p>
+                              <p className="text-xs text-gray-600 mb-1">{task.description}</p>
                             )}
                             <div className="flex justify-between items-center text-xs text-gray-500">
                               <span>Progreso: {task.progress}%</span>
