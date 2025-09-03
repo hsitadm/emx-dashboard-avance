@@ -210,7 +210,7 @@ const MilestonesView = () => {
                     {new Date(milestone.due_date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })}
                   </span>
                   <span className="text-xs font-medium text-gray-600">
-                    {getRiskText(risk).split(' ')[0]}
+                    {risk === 'overdue' ? '🔴' : risk === 'high' ? '🟡' : risk === 'medium' ? '🟠' : '🟢'}
                   </span>
                 </div>
 
