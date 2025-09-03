@@ -153,7 +153,7 @@ const ProgressOverview = () => {
 
       {/* Milestones Section */}
       <div>
-        <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-4 mb-6 shadow-lg">
+        <div className="bg-gradient-to-r from-gray-700 to-gray-800 rounded-lg p-4 mb-6 shadow-lg">
           <div className="flex items-center gap-3">
             <Target className="text-white" size={24} />
             <h2 className="text-xl font-semibold text-white">🎯 Hitos Estratégicos</h2>
@@ -229,7 +229,7 @@ const ProgressOverview = () => {
 
       {/* Stories Section */}
       <div>
-        <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg p-4 mb-6 shadow-lg">
+        <div className="bg-gradient-to-r from-slate-600 to-slate-700 rounded-lg p-4 mb-6 shadow-lg">
           <div className="flex items-center gap-3">
             <BookOpen className="text-white" size={24} />
             <h2 className="text-xl font-semibold text-white">📖 Historias del Proyecto</h2>
