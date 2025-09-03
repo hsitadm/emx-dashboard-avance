@@ -312,8 +312,11 @@ const ProgressOverview = () => {
                       📋 {storyTasks.length}
                     </span>
                     {story.milestone_title && (
-                      <span className="bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded">
-                        🎯 {story.milestone_title.length > 8 ? story.milestone_title.substring(0, 8) + '...' : story.milestone_title}
+                      <span 
+                        className="bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded text-xs cursor-help"
+                        title={story.milestone_title}
+                      >
+                        🎯 {story.milestone_title}
                       </span>
                     )}
                   </div>
