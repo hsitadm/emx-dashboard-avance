@@ -7,6 +7,7 @@ const ProgressOverview = () => {
   const [stories, setStories] = useState<any[]>([])
   const [tasks, setTasks] = useState<any[]>([])
   const [expandedStory, setExpandedStory] = useState<number | null>(null)
+  const [showAllTasks, setShowAllTasks] = useState<{[key: number]: boolean}>({})
   const [loading, setLoading] = useState(true)
   const [filters, setFilters] = useState({
     milestoneStatus: 'all',
@@ -320,25 +321,51 @@ const ProgressOverview = () => {
 
                 {/* Expanded Tasks */}
                 {isExpanded && (
-                  <div className="border-t border-gray-200 p-2 bg-gray-50">
-                    <h4 className="text-xs font-semibold text-gray-900 mb-2">
-                      Tareas ({storyTasks.length})
-                    </h4>
+                  <div className="border-t border-gray-200 p-3 bg-gray-50">
+                    <div className="flex justify-between items-center mb-2">
+                      <h4 className="text-xs font-semibold text-gray-900">
+                        Tareas ({storyTasks.length})
+                      </h4>
+                      {storyTasks.length > 3 && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setShowAllTasks(prev => ({
+                              ...prev,
+                              [story.id]: !prev[story.id]
+                            }))
+                          }}
+                          className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                        >
+                          {showAllTasks[story.id] ? 'Ver menos' : 'Ver todas'}
+                        </button>
+                      )}
+                    </div>
                     {storyTasks.length > 0 ? (
-                      <div className="space-y-1">
-                        {storyTasks.slice(0, 3).map((task) => (
+                      <div className="space-y-1 max-h-48 overflow-y-auto">
+                        {(showAllTasks[story.id] ? storyTasks : storyTasks.slice(0, 3)).map((task) => (
                           <div key={task.id} className="bg-white rounded p-2 border border-gray-200">
                             <div className="flex justify-between items-start mb-1">
                               <h5 className="text-xs font-medium text-gray-900 flex-1 pr-1 line-clamp-1">{task.title}</h5>
-                              <span className="text-xs text-gray-600">{task.progress}%</span>
+                              <div className="flex items-center gap-2">
+                                <span className={`px-1.5 py-0.5 rounded text-xs ${
+                                  task.status === 'completed' ? 'bg-green-100 text-green-700' :
+                                  task.status === 'in-progress' ? 'bg-yellow-100 text-yellow-700' :
+                                  'bg-gray-100 text-gray-700'
+                                }`}>
+                                  {task.progress}%
+                                </span>
+                              </div>
                             </div>
                             {task.assignee_name && (
-                              <p className="text-xs text-gray-500">{task.assignee_name}</p>
+                              <p className="text-xs text-gray-500">👤 {task.assignee_name}</p>
                             )}
                           </div>
                         ))}
-                        {storyTasks.length > 3 && (
-                          <p className="text-xs text-gray-500 text-center">+{storyTasks.length - 3} tareas más</p>
+                        {!showAllTasks[story.id] && storyTasks.length > 3 && (
+                          <p className="text-xs text-gray-500 text-center py-1">
+                            +{storyTasks.length - 3} tareas más
+                          </p>
                         )}
                       </div>
                     ) : (
