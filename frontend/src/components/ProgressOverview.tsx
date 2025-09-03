@@ -186,15 +186,16 @@ const ProgressOverview = () => {
               <h2 className="text-xl font-semibold text-white">🎯 Hitos Estratégicos</h2>
             </div>
             <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-white">Filtros de Hitos:</span>
               <select
                 value={filters.milestoneStatus}
                 onChange={(e) => setFilters({...filters, milestoneStatus: e.target.value})}
                 className="text-sm px-3 py-1 rounded border border-gray-300 bg-white"
               >
-                <option value="all">Todos los estados</option>
-                <option value="planning">Planificación</option>
-                <option value="in-progress">En Progreso</option>
-                <option value="completed">Completados</option>
+                <option value="all">Todos los hitos</option>
+                <option value="planning">Hitos en Planificación</option>
+                <option value="in-progress">Hitos en Progreso</option>
+                <option value="completed">Hitos Completados</option>
               </select>
               <label className="flex items-center gap-2 text-white text-sm">
                 <input
@@ -264,15 +265,16 @@ const ProgressOverview = () => {
               <h2 className="text-xl font-semibold text-white">📖 Historias del Proyecto</h2>
             </div>
             <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-white">Filtros de Historias:</span>
               <select
                 value={filters.storyStatus}
                 onChange={(e) => setFilters({...filters, storyStatus: e.target.value})}
                 className="text-sm px-3 py-1 rounded border border-gray-300 bg-white"
               >
-                <option value="all">Todos los estados</option>
-                <option value="planning">Planificación</option>
-                <option value="in-progress">En Progreso</option>
-                <option value="completed">Completadas</option>
+                <option value="all">Todas las historias</option>
+                <option value="planning">Historias en Planificación</option>
+                <option value="in-progress">Historias en Progreso</option>
+                <option value="completed">Historias Completadas</option>
               </select>
             </div>
           </div>
