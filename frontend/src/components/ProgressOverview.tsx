@@ -166,6 +166,11 @@ const ProgressOverview = () => {
             <div>
               <p className="text-gray-600 text-sm">Tareas Totales</p>
               <p className="text-2xl font-semibold text-gray-900">{tasks.length}</p>
+              <p className="text-xs text-gray-500 mt-1">
+                {tasks.filter(t => t.status === 'planning').length} planificación | 
+                {tasks.filter(t => t.status === 'in-progress').length} progreso | 
+                {tasks.filter(t => t.status === 'completed').length} completadas
+              </p>
             </div>
             <CheckSquare size={24} className="text-gray-400" />
           </div>
