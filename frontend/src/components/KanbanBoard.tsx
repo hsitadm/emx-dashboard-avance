@@ -13,8 +13,7 @@ const KanbanBoard = () => {
   const columns = [
     { id: 'planning', title: '📋 Planificación', color: 'bg-blue-50' },
     { id: 'in-progress', title: '⚡ En Progreso', color: 'bg-yellow-50' },
-    { id: 'completed', title: '✅ Completado', color: 'bg-green-50' },
-    { id: 'review', title: '👁️ En Revisión', color: 'bg-purple-50' }
+    { id: 'completed', title: '✅ Completado', color: 'bg-green-50' }
   ]
 
   useEffect(() => {
@@ -64,13 +63,13 @@ const KanbanBoard = () => {
   }
 
   const getNextStatus = (currentStatus: string) => {
-    const statusOrder = ['planning', 'in-progress', 'completed', 'review']
+    const statusOrder = ['planning', 'in-progress', 'completed']
     const currentIndex = statusOrder.indexOf(currentStatus)
     return currentIndex < statusOrder.length - 1 ? statusOrder[currentIndex + 1] : null
   }
 
   const getPrevStatus = (currentStatus: string) => {
-    const statusOrder = ['planning', 'in-progress', 'completed', 'review']
+    const statusOrder = ['planning', 'in-progress', 'completed']
     const currentIndex = statusOrder.indexOf(currentStatus)
     return currentIndex > 0 ? statusOrder[currentIndex - 1] : null
   }
@@ -120,7 +119,7 @@ const KanbanBoard = () => {
         <AdvancedFilters onFiltersChange={setFilters} />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {columns.map((column) => (
           <div key={column.id} className={`${column.color} rounded-xl p-4 shadow-sm border border-gray-200`}>
             <div className="flex justify-between items-center mb-4">
