@@ -8,6 +8,11 @@ const ProgressOverview = () => {
   const [tasks, setTasks] = useState<any[]>([])
   const [expandedStory, setExpandedStory] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
+  const [filters, setFilters] = useState({
+    milestoneStatus: 'all',
+    storyStatus: 'all',
+    showCompleted: true
+  })
 
   useEffect(() => {
     loadData()
@@ -40,6 +45,22 @@ const ProgressOverview = () => {
 
   const toggleStoryExpansion = (storyId: number) => {
     setExpandedStory(expandedStory === storyId ? null : storyId)
+  }
+
+  const getFilteredMilestones = () => {
+    return milestones.filter(milestone => {
+      if (filters.milestoneStatus !== 'all' && milestone.status !== filters.milestoneStatus) return false
+      if (!filters.showCompleted && milestone.status === 'completed') return false
+      return true
+    })
+  }
+
+  const getFilteredStories = () => {
+    return stories.filter(story => {
+      if (filters.storyStatus !== 'all' && story.status !== filters.storyStatus) return false
+      if (!filters.showCompleted && story.status === 'completed') return false
+      return true
+    })
   }
 
   const getStatusColor = (status: string) => {
@@ -93,10 +114,12 @@ const ProgressOverview = () => {
   }
 
   // Calculate overall metrics
-  const totalMilestones = milestones.length
-  const completedMilestones = milestones.filter(m => m.status === 'completed').length
-  const overallProgress = totalMilestones > 0 ? Math.round(milestones.reduce((sum, m) => sum + m.progress, 0) / totalMilestones) : 0
-  const atRiskMilestones = milestones.filter(m => ['overdue', 'high'].includes(getRiskLevel(m))).length
+  const filteredMilestones = getFilteredMilestones()
+  const filteredStories = getFilteredStories()
+  const totalMilestones = filteredMilestones.length
+  const completedMilestones = filteredMilestones.filter(m => m.status === 'completed').length
+  const overallProgress = totalMilestones > 0 ? Math.round(filteredMilestones.reduce((sum, m) => sum + m.progress, 0) / totalMilestones) : 0
+  const atRiskMilestones = filteredMilestones.filter(m => ['overdue', 'high'].includes(getRiskLevel(m))).length
 
   if (loading) {
     return (
@@ -144,7 +167,7 @@ const ProgressOverview = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-600 text-sm">Historias Activas</p>
-              <p className="text-2xl font-semibold text-gray-900">{stories.length}</p>
+              <p className="text-2xl font-semibold text-gray-900">{filteredStories.length}</p>
             </div>
             <BookOpen size={24} className="text-gray-400" />
           </div>
@@ -154,72 +177,74 @@ const ProgressOverview = () => {
       {/* Milestones Section */}
       <div>
         <div className="bg-gradient-to-r from-gray-400 to-gray-500 rounded-lg p-4 mb-6 shadow-lg">
-          <div className="flex items-center gap-3">
-            <Target className="text-white" size={24} />
-            <h2 className="text-xl font-semibold text-white">🎯 Hitos Estratégicos</h2>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Target className="text-white" size={24} />
+              <h2 className="text-xl font-semibold text-white">🎯 Hitos Estratégicos</h2>
+            </div>
+            <div className="flex items-center gap-3">
+              <select
+                value={filters.milestoneStatus}
+                onChange={(e) => setFilters({...filters, milestoneStatus: e.target.value})}
+                className="text-sm px-3 py-1 rounded border border-gray-300 bg-white"
+              >
+                <option value="all">Todos los estados</option>
+                <option value="planning">Planificación</option>
+                <option value="in-progress">En Progreso</option>
+                <option value="completed">Completados</option>
+              </select>
+              <label className="flex items-center gap-2 text-white text-sm">
+                <input
+                  type="checkbox"
+                  checked={filters.showCompleted}
+                  onChange={(e) => setFilters({...filters, showCompleted: e.target.checked})}
+                  className="rounded"
+                />
+                Mostrar completados
+              </label>
+            </div>
           </div>
         </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-          {milestones.map((milestone) => {
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4">
+          {filteredMilestones.map((milestone) => {
             const risk = getRiskLevel(milestone)
             return (
-              <div key={milestone.id} className={`bg-white rounded-lg p-5 shadow-sm border-l-4 ${getRiskColor(risk)}`}>
-                <div className="flex justify-between items-start mb-4">
-                  <div className="flex-1">
-                    <h3 className="text-base font-semibold text-gray-900 mb-2">{milestone.title}</h3>
-                    <p className="text-gray-600 text-sm mb-4 line-clamp-2">{milestone.description}</p>
-                    
-                    {/* Progress Bar */}
-                    <div className="mb-4">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-sm font-medium text-gray-700">Progreso</span>
-                        <span className="text-sm font-semibold text-gray-900">{milestone.progress}%</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div 
-                          className="bg-gray-600 h-2 rounded-full transition-all duration-500" 
-                          style={{ width: `${milestone.progress}%` }}
-                        ></div>
-                      </div>
+              <div key={milestone.id} className={`bg-white rounded-lg p-3 shadow-sm border-l-4 ${getRiskColor(risk)}`}>
+                <div className="mb-2">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-1 line-clamp-2">{milestone.title}</h3>
+                  
+                  {/* Progress Bar */}
+                  <div className="mb-2">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-xs font-medium text-gray-700">Progreso</span>
+                      <span className="text-xs font-semibold text-gray-900">{milestone.progress}%</span>
                     </div>
-
-                    {/* Metadata */}
-                    <div className="flex items-center gap-3 text-sm mb-3">
-                      <span className="flex items-center gap-1 text-gray-600">
-                        <Calendar size={14} />
-                        {new Date(milestone.due_date).toLocaleDateString()}
-                      </span>
-                      <span className={`px-2 py-1 rounded text-xs font-medium border ${getStatusColor(milestone.status)}`}>
-                        {milestone.status === 'completed' ? 'Completado' : milestone.status === 'in-progress' ? 'En Progreso' : 'Planificación'}
-                      </span>
+                    <div className="w-full bg-gray-200 rounded-full h-1">
+                      <div 
+                        className="bg-gray-600 h-1 rounded-full transition-all duration-500" 
+                        style={{ width: `${milestone.progress}%` }}
+                      ></div>
                     </div>
-
-                    <div className="text-sm font-medium text-gray-600 mb-3">
-                      {getRiskText(risk)}
-                    </div>
-
-                    {/* Connected Stories */}
-                    {milestone.story_titles && milestone.story_titles.length > 0 && (
-                      <div>
-                        <span className="text-sm text-gray-500 mb-2 block">
-                          📖 {milestone.stories_count} historias
-                        </span>
-                        <div className="flex flex-wrap gap-2">
-                          {milestone.story_titles.slice(0, 2).map((storyTitle: string, index: number) => (
-                            <span key={index} className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">
-                              {storyTitle.length > 18 ? storyTitle.substring(0, 18) + '...' : storyTitle}
-                            </span>
-                          ))}
-                          {milestone.story_titles.length > 2 && (
-                            <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">
-                              +{milestone.story_titles.length - 2}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    )}
                   </div>
+
+                  {/* Metadata */}
+                  <div className="flex items-center justify-between text-xs mb-2">
+                    <span className="flex items-center gap-1 text-gray-600">
+                      <Calendar size={10} />
+                      {new Date(milestone.due_date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })}
+                    </span>
+                    <span className="text-xs font-medium text-gray-600">
+                      {getRiskText(risk).split(' ')[0]}
+                    </span>
+                  </div>
+
+                  {/* Connected Stories */}
+                  {milestone.story_titles && milestone.story_titles.length > 0 && (
+                    <div className="text-xs text-gray-500">
+                      📖 {milestone.stories_count} historias
+                    </div>
+                  )}
                 </div>
               </div>
             )
@@ -230,56 +255,64 @@ const ProgressOverview = () => {
       {/* Stories Section */}
       <div>
         <div className="bg-gradient-to-r from-slate-400 to-slate-500 rounded-lg p-4 mb-6 shadow-lg">
-          <div className="flex items-center gap-3">
-            <BookOpen className="text-white" size={24} />
-            <h2 className="text-xl font-semibold text-white">📖 Historias del Proyecto</h2>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <BookOpen className="text-white" size={24} />
+              <h2 className="text-xl font-semibold text-white">📖 Historias del Proyecto</h2>
+            </div>
+            <div className="flex items-center gap-3">
+              <select
+                value={filters.storyStatus}
+                onChange={(e) => setFilters({...filters, storyStatus: e.target.value})}
+                className="text-sm px-3 py-1 rounded border border-gray-300 bg-white"
+              >
+                <option value="all">Todos los estados</option>
+                <option value="planning">Planificación</option>
+                <option value="in-progress">En Progreso</option>
+                <option value="completed">Completadas</option>
+              </select>
+            </div>
           </div>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {stories.map((story) => {
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {filteredStories.map((story) => {
             const storyTasks = getTasksByStoryId(story.id)
             const isExpanded = expandedStory === story.id
             
             return (
               <div key={story.id} className="bg-white rounded-lg border border-gray-200 shadow-sm">
                 <div 
-                  className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                  className="p-3 cursor-pointer hover:bg-gray-50 transition-colors"
                   onClick={() => toggleStoryExpansion(story.id)}
                 >
                   <div className="flex items-start justify-between mb-2">
-                    <h3 className="text-base font-semibold text-gray-900 flex-1 pr-2">{story.title}</h3>
-                    {isExpanded ? <ChevronDown size={18} className="text-gray-400" /> : <ChevronRight size={18} className="text-gray-400" />}
+                    <h3 className="text-sm font-semibold text-gray-900 flex-1 pr-2 line-clamp-2">{story.title}</h3>
+                    {isExpanded ? <ChevronDown size={16} className="text-gray-400" /> : <ChevronRight size={16} className="text-gray-400" />}
                   </div>
-                  <p className="text-gray-600 text-sm mb-3 line-clamp-2">{story.description}</p>
                   
                   {/* Story Progress */}
-                  <div className="mb-3">
+                  <div className="mb-2">
                     <div className="flex justify-between items-center mb-1">
-                      <span className="text-sm font-medium text-gray-700">Progreso</span>
-                      <span className="text-sm font-semibold text-gray-900">{Math.round(story.story_progress || 0)}%</span>
+                      <span className="text-xs font-medium text-gray-700">Progreso</span>
+                      <span className="text-xs font-semibold text-gray-900">{Math.round(story.story_progress || 0)}%</span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-1.5">
+                    <div className="w-full bg-gray-200 rounded-full h-1">
                       <div 
-                        className="bg-gray-600 h-1.5 rounded-full transition-all duration-500" 
+                        className="bg-gray-600 h-1 rounded-full transition-all duration-500" 
                         style={{ width: `${story.story_progress || 0}%` }}
                       ></div>
                     </div>
                   </div>
 
                   {/* Story Metadata */}
-                  <div className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-2">
-                      <span className={`px-2 py-1 rounded text-xs font-medium border ${getStatusColor(story.status)}`}>
-                        {getStatusIcon(story.status)} {story.status === 'completed' ? 'Completada' : story.status === 'in-progress' ? 'En Progreso' : 'Planificación'}
-                      </span>
-                      <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-medium">
-                        📋 {storyTasks.length} tareas
-                      </span>
-                    </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-medium">
+                      📋 {storyTasks.length}
+                    </span>
                     {story.milestone_title && (
-                      <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">
-                        🎯 {story.milestone_title.length > 12 ? story.milestone_title.substring(0, 12) + '...' : story.milestone_title}
+                      <span className="bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded">
+                        🎯 {story.milestone_title.length > 8 ? story.milestone_title.substring(0, 8) + '...' : story.milestone_title}
                       </span>
                     )}
                   </div>
@@ -287,32 +320,29 @@ const ProgressOverview = () => {
 
                 {/* Expanded Tasks */}
                 {isExpanded && (
-                  <div className="border-t border-gray-200 p-3 bg-gray-50">
-                    <h4 className="text-sm font-semibold text-gray-900 mb-2">
+                  <div className="border-t border-gray-200 p-2 bg-gray-50">
+                    <h4 className="text-xs font-semibold text-gray-900 mb-2">
                       Tareas ({storyTasks.length})
                     </h4>
                     {storyTasks.length > 0 ? (
-                      <div className="space-y-2">
-                        {storyTasks.map((task) => (
+                      <div className="space-y-1">
+                        {storyTasks.slice(0, 3).map((task) => (
                           <div key={task.id} className="bg-white rounded p-2 border border-gray-200">
                             <div className="flex justify-between items-start mb-1">
-                              <h5 className="text-sm font-medium text-gray-900 flex-1 pr-2">{task.title}</h5>
-                              <span className={`px-1.5 py-0.5 rounded text-xs font-medium border ${getStatusColor(task.status)}`}>
-                                {task.status === 'completed' ? 'Completada' : task.status === 'in-progress' ? 'En Progreso' : 'Planificación'}
-                              </span>
+                              <h5 className="text-xs font-medium text-gray-900 flex-1 pr-1 line-clamp-1">{task.title}</h5>
+                              <span className="text-xs text-gray-600">{task.progress}%</span>
                             </div>
-                            {task.description && (
-                              <p className="text-xs text-gray-600 mb-1">{task.description}</p>
+                            {task.assignee_name && (
+                              <p className="text-xs text-gray-500">{task.assignee_name}</p>
                             )}
-                            <div className="flex justify-between items-center text-xs text-gray-500">
-                              <span>Progreso: {task.progress}%</span>
-                              {task.assignee_name && <span>Asignado: {task.assignee_name}</span>}
-                            </div>
                           </div>
                         ))}
+                        {storyTasks.length > 3 && (
+                          <p className="text-xs text-gray-500 text-center">+{storyTasks.length - 3} tareas más</p>
+                        )}
                       </div>
                     ) : (
-                      <p className="text-sm text-gray-500">No hay tareas asignadas a esta historia</p>
+                      <p className="text-xs text-gray-500">Sin tareas</p>
                     )}
                   </div>
                 )}
