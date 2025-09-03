@@ -141,7 +141,7 @@ const CalendarView = () => {
   }
 
   const handleDayClick = (date: Date) => {
-    if (!date || !canEdit) return
+    if (!date || !canEdit()) return
     setSelectedDate(date)
     setEditingEvent(null)
     setShowEventModal(true)
@@ -156,7 +156,7 @@ const CalendarView = () => {
 
   const handleDayRightClick = (date: Date, e: React.MouseEvent) => {
     e.preventDefault()
-    if (!date || !canEdit) return
+    if (!date || !canEdit()) return
     setSelectedDate(date)
     setEditingMilestone(null)
     setShowMilestoneModal(true)
@@ -170,7 +170,7 @@ const CalendarView = () => {
 
   const handleEditEvent = (event: any, e: React.MouseEvent) => {
     e.stopPropagation()
-    if (!canEdit) return
+    if (!canEdit()) return
     
     setEditingEvent(event)
     setSelectedDate(new Date(event.due_date))
