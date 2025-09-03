@@ -4,9 +4,11 @@ import api from '../services/api.js'
 
 const MilestonesView = () => {
   const [milestones, setMilestones] = useState<any[]>([])
+  const [stories, setStories] = useState<any[]>([])
   const [showModal, setShowModal] = useState(false)
   const [editingMilestone, setEditingMilestone] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [selectedStories, setSelectedStories] = useState<number[]>([])
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -17,6 +19,7 @@ const MilestonesView = () => {
 
   useEffect(() => {
     loadMilestones()
+    loadStories()
   }, [])
 
   useEffect(() => {
@@ -28,6 +31,9 @@ const MilestonesView = () => {
         status: editingMilestone.status || 'planning',
         region: editingMilestone.region || ''
       })
+      // Load connected stories
+      const connectedStories = stories.filter(story => story.milestone_id === editingMilestone.id).map(story => story.id)
+      setSelectedStories(connectedStories)
     } else {
       setFormData({
         title: '',
@@ -36,8 +42,18 @@ const MilestonesView = () => {
         status: 'planning',
         region: ''
       })
+      setSelectedStories([])
     }
-  }, [editingMilestone])
+  }, [editingMilestone, stories])
+
+  const loadStories = async () => {
+    try {
+      const data = await api.getStories()
+      setStories(data)
+    } catch (error) {
+      console.error('Error loading stories:', error)
+    }
+  }
 
   const loadMilestones = async () => {
     try {
@@ -54,14 +70,25 @@ const MilestonesView = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
+      let milestone
       if (editingMilestone) {
-        await api.updateMilestone(editingMilestone.id, formData)
+        milestone = await api.updateMilestone(editingMilestone.id, formData)
       } else {
-        await api.createMilestone(formData)
+        milestone = await api.createMilestone(formData)
       }
+      
+      // Update stories with milestone_id
+      if (selectedStories.length > 0) {
+        for (const storyId of selectedStories) {
+          await api.updateStory(storyId, { milestone_id: milestone.id || editingMilestone.id })
+        }
+      }
+      
       await loadMilestones()
+      await loadStories()
       setShowModal(false)
       setEditingMilestone(null)
+      setSelectedStories([])
     } catch (error) {
       console.error('Error saving milestone:', error)
     }
@@ -313,6 +340,32 @@ const MilestonesView = () => {
                   <option value="SNAP">SNAP</option>
                   <option value="COEC">COEC</option>
                 </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Historias Conectadas</label>
+                <div className="max-h-32 overflow-y-auto border border-gray-300 rounded-md p-2">
+                  {stories.map((story) => (
+                    <label key={story.id} className="flex items-center space-x-2 py-1">
+                      <input
+                        type="checkbox"
+                        checked={selectedStories.includes(story.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedStories([...selectedStories, story.id])
+                          } else {
+                            setSelectedStories(selectedStories.filter(id => id !== story.id))
+                          }
+                        }}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-gray-700">{story.title}</span>
+                    </label>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Selecciona las historias que pertenecen a este hito
+                </p>
               </div>
               
               <div className="flex gap-3 pt-4">
