@@ -1,112 +1,103 @@
 import express from 'express'
 import db from '../config/database.js'
-// import { authenticateUser } from '../middleware/auth.js'
 
 const router = express.Router()
 
-// Temporalmente deshabilitado para desarrollo
-// router.use(authenticateUser)
-
-// Función para calcular progreso de historia basado en tareas
-async function updateStoryProgress(storyId) {
-  try {
-    const tasks = await db.query('SELECT progress FROM tasks WHERE story_id = ?', [storyId])
-    
-    if (tasks.rows.length === 0) {
-      return 0
-    }
-    
-    const totalProgress = tasks.rows.reduce((sum, task) => sum + (task.progress || 0), 0)
-    const averageProgress = Math.round(totalProgress / tasks.rows.length)
-    
-    await db.run('UPDATE stories SET progress = ? WHERE id = ?', [averageProgress, storyId])
-    
-    return averageProgress
-  } catch (error) {
-    console.error('Error updating story progress:', error)
-    return 0
-  }
-}
-
-// GET /api/stories - Obtener todas las historias con sus tareas
+// GET /api/stories - Get all stories with calculated progress
 router.get('/', async (req, res) => {
   try {
-    const stories = await db.query(`
-      SELECT s.*, m.title as milestone_title, u.name as assignee_name,
-             COUNT(t.id) as task_count,
-             COUNT(CASE WHEN t.status = 'completed' THEN 1 END) as completed_tasks
-      FROM stories s LEFT JOIN milestones m ON s.milestone_id = m.id 
-      LEFT JOIN users u ON s.assignee_id = u.id 
+    const result = await db.query(`
+      SELECT 
+        s.*, 
+        m.title as milestone_title,
+        u.name as assignee_name,
+        COUNT(t.id) as task_count,
+        COUNT(CASE WHEN t.status = 'completed' THEN 1 END) as completed_tasks,
+        COALESCE(AVG(t.progress), 0) as story_progress
+      FROM stories s 
+      LEFT JOIN milestones m ON s.milestone_id = m.id
+      LEFT JOIN users u ON s.assignee_id = u.id
       LEFT JOIN tasks t ON s.id = t.story_id
-      GROUP BY s.id
+      GROUP BY s.id, s.title, s.description, s.status, s.priority, s.region, s.assignee_id, s.start_date, s.target_date, s.progress, s.milestone_id, s.created_at
       ORDER BY s.created_at DESC
     `)
     
-    res.json(stories.rows)
+    // Normalize status and calculate progress
+    const stories = result.rows.map(story => ({
+      ...story,
+      status: story.status === 'active' ? 'in-progress' : (story.status || 'planning'),
+      story_progress: Math.round(story.story_progress || 0)
+    }))
+    
+    res.json(stories)
   } catch (error) {
     console.error('Error fetching stories:', error)
     res.status(500).json({ error: 'Failed to fetch stories' })
   }
 })
 
-// GET /api/stories/:id/tasks - Obtener tareas de una historia
-router.get('/:id/tasks', async (req, res) => {
+// GET /api/stories/:id - Get specific story
+router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params
-    const tasks = await db.query(`
-      SELECT t.*, u.name as assignee_name 
-      FROM tasks t 
-      LEFT JOIN users u ON t.assignee_id = u.id 
-      WHERE t.story_id = ? 
-      ORDER BY t.created_at DESC
+    const result = await db.query(`
+      SELECT s.*, m.title as milestone_title, u.name as assignee_name 
+      FROM stories s 
+      LEFT JOIN milestones m ON s.milestone_id = m.id
+      LEFT JOIN users u ON s.assignee_id = u.id
+      WHERE s.id = ?
     `, [id])
     
-    res.json(tasks.rows)
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Story not found' })
+    }
+    
+    const story = result.rows[0]
+    story.status = story.status === 'active' ? 'in-progress' : (story.status || 'planning')
+    
+    res.json(story)
   } catch (error) {
-    console.error('Error fetching story tasks:', error)
-    res.status(500).json({ error: 'Failed to fetch story tasks' })
+    console.error('Error fetching story:', error)
+    res.status(500).json({ error: 'Failed to fetch story' })
   }
 })
 
-// POST /api/stories - Crear nueva historia
+// POST /api/stories - Create new story
 router.post('/', async (req, res) => {
   try {
-    const { title, description, priority, region, assignee_id, start_date, target_date } = req.body
-
-    const result = await db.run(
-      `INSERT INTO stories (title, description, priority, region, assignee_id, start_date, target_date) 
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [title, description, priority || 'medium', region, assignee_id, start_date, target_date]
+    const { title, description, status, priority, region, assignee_id, start_date, target_date, milestone_id } = req.body
+    
+    if (!title) {
+      return res.status(400).json({ error: 'Title is required' })
+    }
+    
+    const result = await db.query(
+      'INSERT INTO stories (title, description, status, priority, region, assignee_id, start_date, target_date, milestone_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *',
+      [title, description, status || 'planning', priority || 'medium', region || 'TODAS', assignee_id, start_date, target_date, milestone_id]
     )
-
-    const story = await db.query('SELECT * FROM stories WHERE id = ?', [result.lastID])
-    res.status(201).json(story.rows[0])
+    
+    res.status(201).json(result.rows[0])
   } catch (error) {
     console.error('Error creating story:', error)
     res.status(500).json({ error: 'Failed to create story' })
   }
 })
 
-// PUT /api/stories/:id - Actualizar historia
+// PUT /api/stories/:id - Update story
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params
-    const { title, description, status, priority, region, assignee_id, start_date, target_date, progress } = req.body
-
-    await db.run(
-      `UPDATE stories 
-       SET title = ?, description = ?, status = ?, priority = ?, region = ?, 
-           assignee_id = ?, start_date = ?, target_date = ?, progress = ?
-       WHERE id = ?`,
-      [title, description, status, priority, region, assignee_id, start_date, target_date, progress, id]
+    const { title, description, status, priority, region, assignee_id, start_date, target_date, milestone_id } = req.body
+    
+    const result = await db.query(
+      'UPDATE stories SET title = ?, description = ?, status = ?, priority = ?, region = ?, assignee_id = ?, start_date = ?, target_date = ?, milestone_id = ? WHERE id = ? RETURNING *',
+      [title, description, status, priority, region, assignee_id, start_date, target_date, milestone_id, id]
     )
-
-    const result = await db.query('SELECT * FROM stories WHERE id = ?', [id])
     
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Story not found' })
     }
-
+    
     res.json(result.rows[0])
   } catch (error) {
     console.error('Error updating story:', error)
@@ -114,61 +105,17 @@ router.put('/:id', async (req, res) => {
   }
 })
 
-// POST /api/stories/:id/complete - Completar historia y crear hito
-router.post('/:id/complete', async (req, res) => {
-  try {
-    const { id } = req.params
-    
-    // Get story details
-    const storyResult = await db.query('SELECT * FROM stories WHERE id = ?', [id])
-    if (storyResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Story not found' })
-    }
-    
-    const story = storyResult.rows[0]
-    
-    // Create milestone from story
-    const milestoneResult = await db.run(
-      `INSERT INTO milestones (title, description, due_date, status, progress) 
-       VALUES (?, ?, ?, 'completed', 100)`,
-      [`Hito: ${story.title}`, story.description, story.target_date]
-    )
-    
-    // Update story status and link to milestone
-    await db.run(
-      `UPDATE stories SET status = 'completed', progress = 100, milestone_id = ? WHERE id = ?`,
-      [milestoneResult.lastID, id]
-    )
-    
-    // Mark all story tasks as completed
-    await db.run('UPDATE tasks SET status = "completed", progress = 100 WHERE story_id = ?', [id])
-    
-    const milestone = await db.query('SELECT * FROM milestones WHERE id = ?', [milestoneResult.lastID])
-    res.json({ 
-      message: 'Story completed and milestone created',
-      milestone: milestone.rows[0]
-    })
-  } catch (error) {
-    console.error('Error completing story:', error)
-    res.status(500).json({ error: 'Failed to complete story' })
-  }
-})
-
-// DELETE /api/stories/:id - Eliminar historia
+// DELETE /api/stories/:id - Delete story
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params
-
-    // First, unlink tasks from this story
-    await db.run('UPDATE tasks SET story_id = NULL WHERE story_id = ?', [id])
     
-    // Then delete the story
-    const result = await db.run('DELETE FROM stories WHERE id = ?', [id])
-
-    if (result.changes === 0) {
+    const result = await db.query('DELETE FROM stories WHERE id = ? RETURNING *', [id])
+    
+    if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Story not found' })
     }
-
+    
     res.json({ message: 'Story deleted successfully' })
   } catch (error) {
     console.error('Error deleting story:', error)
