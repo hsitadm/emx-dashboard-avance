@@ -158,59 +158,60 @@ const ProgressOverview = () => {
           <h2 className="text-2xl font-bold text-gray-900">🎯 Hitos Estratégicos</h2>
         </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
           {milestones.map((milestone) => {
             const risk = getRiskLevel(milestone)
             return (
-              <div key={milestone.id} className={`bg-white rounded-lg p-6 shadow-sm border-l-4 ${getRiskColor(risk)}`}>
-                <div className="flex justify-between items-start mb-4">
+              <div key={milestone.id} className={`bg-white rounded-lg p-4 shadow-sm border-l-4 ${getRiskColor(risk)}`}>
+                <div className="flex justify-between items-start mb-3">
                   <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">{milestone.title}</h3>
-                    <p className="text-gray-600 text-sm mb-3">{milestone.description}</p>
+                    <h3 className="text-base font-semibold text-gray-900 mb-1">{milestone.title}</h3>
+                    <p className="text-gray-600 text-xs mb-3 line-clamp-2">{milestone.description}</p>
                     
                     {/* Progress Bar */}
-                    <div className="mb-4">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-sm font-medium text-gray-700">Progreso</span>
-                        <span className="text-sm font-semibold text-gray-900">{milestone.progress}%</span>
+                    <div className="mb-3">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-xs font-medium text-gray-700">Progreso</span>
+                        <span className="text-xs font-semibold text-gray-900">{milestone.progress}%</span>
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="w-full bg-gray-200 rounded-full h-1.5">
                         <div 
-                          className="bg-gray-600 h-2 rounded-full transition-all duration-500" 
+                          className="bg-gray-600 h-1.5 rounded-full transition-all duration-500" 
                           style={{ width: `${milestone.progress}%` }}
                         ></div>
                       </div>
                     </div>
 
                     {/* Metadata */}
-                    <div className="flex items-center gap-4 text-sm">
+                    <div className="flex items-center gap-3 text-xs mb-2">
                       <span className="flex items-center gap-1 text-gray-600">
-                        <Calendar size={14} />
+                        <Calendar size={12} />
                         {new Date(milestone.due_date).toLocaleDateString()}
                       </span>
-                      <span className={`px-2 py-1 rounded text-xs font-medium border ${getStatusColor(milestone.status)}`}>
-                        {getStatusIcon(milestone.status)} {milestone.status === 'completed' ? 'Completado' : milestone.status === 'in-progress' ? 'En Progreso' : 'Planificación'}
+                      <span className={`px-1.5 py-0.5 rounded text-xs font-medium border ${getStatusColor(milestone.status)}`}>
+                        {milestone.status === 'completed' ? 'Completado' : milestone.status === 'in-progress' ? 'En Progreso' : 'Planificación'}
                       </span>
-                      <span className="text-xs font-medium text-gray-600">
-                        {getRiskText(risk)}
-                      </span>
+                    </div>
+
+                    <div className="text-xs font-medium text-gray-600 mb-2">
+                      {getRiskText(risk)}
                     </div>
 
                     {/* Connected Stories */}
                     {milestone.story_titles && milestone.story_titles.length > 0 && (
-                      <div className="mt-3">
+                      <div>
                         <span className="text-xs text-gray-500 mb-1 block">
-                          📖 {milestone.stories_count} historias conectadas
+                          📖 {milestone.stories_count} historias
                         </span>
                         <div className="flex flex-wrap gap-1">
-                          {milestone.story_titles.slice(0, 3).map((storyTitle: string, index: number) => (
-                            <span key={index} className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">
-                              {storyTitle.length > 20 ? storyTitle.substring(0, 20) + '...' : storyTitle}
+                          {milestone.story_titles.slice(0, 2).map((storyTitle: string, index: number) => (
+                            <span key={index} className="bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded text-xs">
+                              {storyTitle.length > 15 ? storyTitle.substring(0, 15) + '...' : storyTitle}
                             </span>
                           ))}
-                          {milestone.story_titles.length > 3 && (
-                            <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">
-                              +{milestone.story_titles.length - 3} más
+                          {milestone.story_titles.length > 2 && (
+                            <span className="bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded text-xs">
+                              +{milestone.story_titles.length - 2}
                             </span>
                           )}
                         </div>
