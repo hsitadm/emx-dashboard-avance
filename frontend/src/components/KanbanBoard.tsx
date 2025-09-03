@@ -172,6 +172,14 @@ const KanbanBoard = () => {
                   
                   <p className="text-xs text-gray-600 mb-3 line-clamp-2">{task.description}</p>
                   
+                  {task.story_title && (
+                    <div className="mb-3">
+                      <span className="bg-purple-50 text-purple-700 px-2 py-1 rounded-md text-xs font-medium border border-purple-200">
+                        📖 {task.story_title}
+                      </span>
+                    </div>
+                  )}
+                  
                   <div className="flex justify-between items-center gap-2">
                     <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded-md text-xs font-medium border border-blue-200">
                       🌍 {task.region}

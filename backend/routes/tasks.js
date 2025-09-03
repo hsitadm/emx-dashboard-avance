@@ -7,9 +7,9 @@ const router = express.Router()
 router.get('/', async (req, res) => {
   try {
     const result = await db.query(`
-      SELECT t.*, u.name as assignee_name 
+      SELECT t.*, u.name as assignee_name, s.title as story_title 
       FROM tasks t 
-      LEFT JOIN users u ON t.assignee_id = u.id 
+      LEFT JOIN users u ON t.assignee_id = u.id LEFT JOIN stories s ON t.story_id = s.id 
       ORDER BY t.created_at DESC
     `)
     res.json(result.rows)
@@ -80,9 +80,9 @@ router.put('/:id', async (req, res) => {
     )
 
     const result = await db.query(`
-      SELECT t.*, u.name as assignee_name 
+      SELECT t.*, u.name as assignee_name, s.title as story_title 
       FROM tasks t 
-      LEFT JOIN users u ON t.assignee_id = u.id 
+      LEFT JOIN users u ON t.assignee_id = u.id LEFT JOIN stories s ON t.story_id = s.id 
       WHERE t.id = ?
     `, [id])
 
