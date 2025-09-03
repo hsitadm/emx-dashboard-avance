@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react'
 import { Plus, Calendar, Target, Edit, Trash2, CheckCircle, Clock, AlertCircle } from 'lucide-react'
 import apiService from '../services/api.js'
-import CommentsSection from './CommentsSection'
 
 const MilestonesView = () => {
   const [milestones, setMilestones] = useState<any[]>([])
-  const [stories, setStories] = useState<any[]>([])
   const [showModal, setShowModal] = useState(false)
   const [editingMilestone, setEditingMilestone] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -14,14 +12,11 @@ const MilestonesView = () => {
     description: '',
     due_date: '',
     status: 'planning',
-    progress: 0,
-    story_id: '',
     region: ''
   })
 
   useEffect(() => {
     loadMilestones()
-    loadStories()
   }, [])
 
   useEffect(() => {
@@ -31,8 +26,6 @@ const MilestonesView = () => {
         description: editingMilestone.description || '',
         due_date: editingMilestone.due_date || '',
         status: editingMilestone.status || 'planning',
-        progress: editingMilestone.progress || 0,
-        story_id: editingMilestone.story_id || '',
         region: editingMilestone.region || ''
       })
     } else {
@@ -41,8 +34,6 @@ const MilestonesView = () => {
         description: '',
         due_date: '',
         status: 'planning',
-        progress: 0,
-        story_id: '',
         region: ''
       })
     }
@@ -50,7 +41,8 @@ const MilestonesView = () => {
 
   const loadMilestones = async () => {
     try {
-      const data = await apiService.request('/milestones')
+      setLoading(true)
+      const data = await apiService.get('/milestones')
       setMilestones(data)
     } catch (error) {
       console.error('Error loading milestones:', error)
@@ -59,314 +51,281 @@ const MilestonesView = () => {
     }
   }
 
-  const loadStories = async () => {
-    try {
-      const data = await apiService.request('/stories')
-      setStories(data)
-    } catch (error) {
-      console.error('Error loading stories:', error)
-    }
-  }
-
-  const handleSave = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
     try {
       if (editingMilestone) {
-        await apiService.request(`/milestones/${editingMilestone.id}`, {
-          method: 'PUT',
-          body: JSON.stringify(formData)
-        })
+        await apiService.put(`/milestones/${editingMilestone.id}`, formData)
       } else {
-        await apiService.request('/milestones', {
-          method: 'POST',
-          body: JSON.stringify(formData)
-        })
+        await apiService.post('/milestones', formData)
       }
-      
+      await loadMilestones()
       setShowModal(false)
       setEditingMilestone(null)
-      loadMilestones()
-      
-      // Disparar evento para actualizar otros componentes
-      console.log('Dispatching milestoneUpdated event')
-      window.dispatchEvent(new CustomEvent('milestoneUpdated'))
     } catch (error) {
       console.error('Error saving milestone:', error)
     }
   }
 
-  const handleDelete = async (milestone: any) => {
-    if (confirm(`¿Estás seguro de eliminar el hito "${milestone.title}"?`)) {
+  const handleDeleteMilestone = async (id: number) => {
+    if (window.confirm('¿Estás seguro de que quieres eliminar este hito?')) {
       try {
-        await apiService.request(`/milestones/${milestone.id}`, { method: 'DELETE' })
-        loadMilestones()
-        
-        // Disparar evento para actualizar otros componentes
-        window.dispatchEvent(new CustomEvent('milestoneUpdated'))
+        await apiService.delete(`/milestones/${id}`)
+        await loadMilestones()
       } catch (error) {
         console.error('Error deleting milestone:', error)
+        alert('Error al eliminar el hito. Puede tener historias asociadas.')
       }
-    }
-  }
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'completed': return <CheckCircle className="text-green-600" size={16} />
-      case 'in-progress': return <Clock className="text-blue-600" size={16} />
-      case 'planning': return <AlertCircle className="text-gray-600" size={16} />
-      default: return <Target className="text-gray-600" size={16} />
     }
   }
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed': return 'bg-green-100 text-green-800'
-      case 'in-progress': return 'bg-blue-100 text-blue-800'
-      case 'planning': return 'bg-gray-100 text-gray-800'
-      default: return 'bg-gray-100 text-gray-800'
+      case 'completed': return 'bg-green-100 text-green-800 border-green-200'
+      case 'in-progress': return 'bg-yellow-100 text-yellow-800 border-yellow-200'
+      case 'planning': return 'bg-blue-100 text-blue-800 border-blue-200'
+      default: return 'bg-gray-100 text-gray-800 border-gray-200'
+    }
+  }
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'completed': return <CheckCircle size={14} />
+      case 'in-progress': return <Clock size={14} />
+      case 'planning': return <AlertCircle size={14} />
+      default: return <Target size={14} />
+    }
+  }
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'completed': return 'Completado'
+      case 'in-progress': return 'En Progreso'
+      case 'planning': return 'Planificación'
+      default: return 'Desconocido'
+    }
+  }
+
+  const getRiskLevel = (milestone: any) => {
+    const dueDate = new Date(milestone.due_date)
+    const today = new Date()
+    const daysUntilDue = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+    
+    if (milestone.status === 'completed') return 'success'
+    if (daysUntilDue < 0) return 'overdue'
+    if (daysUntilDue <= 7 && milestone.progress < 80) return 'high'
+    if (daysUntilDue <= 14 && milestone.progress < 60) return 'medium'
+    return 'low'
+  }
+
+  const getRiskColor = (risk: string) => {
+    switch (risk) {
+      case 'success': return 'border-l-green-500 bg-green-50'
+      case 'overdue': return 'border-l-red-500 bg-red-50'
+      case 'high': return 'border-l-red-400 bg-red-50'
+      case 'medium': return 'border-l-yellow-400 bg-yellow-50'
+      default: return 'border-l-blue-400 bg-blue-50'
     }
   }
 
   if (loading) {
-    return <div className="card">Cargando hitos...</div>
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    )
   }
 
   return (
-    <div className="card">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold text-gray-900">Hitos del Proyecto EMx</h2>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">🎯 Hitos del Proyecto EMx</h2>
+          <p className="text-sm text-gray-600 mt-1">Objetivos estratégicos con progreso automático basado en historias</p>
+        </div>
         <button 
-          onClick={() => setShowModal(true)}
-          className="btn-primary flex items-center gap-2"
+          onClick={() => { setEditingMilestone(null); setShowModal(true) }}
+          className="btn-primary flex items-center gap-2 px-4 py-2 shadow-lg hover:shadow-xl transition-shadow"
         >
-          <Plus size={16} />
+          <Plus size={18} />
           Nuevo Hito
         </button>
       </div>
 
-      <div className="space-y-4">
-        {milestones.map((milestone) => (
-          <div key={milestone.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
-            <div className="flex items-start justify-between mb-3">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
-                  {getStatusIcon(milestone.status)}
-                  <h3 className="font-medium text-gray-900">{milestone.title}</h3>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(milestone.status)}`}>
-                    {milestone.status === 'completed' ? 'Completado' : 
-                     milestone.status === 'in-progress' ? 'En Progreso' : 'Planificación'}
-                  </span>
-                </div>
-                
-                {milestone.story_id && (
-                  <div className="mb-2">
-                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 rounded-full text-xs">
-                      📖 Historia: {stories.find(s => s.id == milestone.story_id)?.title || 'Historia no encontrada'}
+      {/* Milestones Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {milestones.map((milestone) => {
+          const risk = getRiskLevel(milestone)
+          return (
+            <div key={milestone.id} className={`bg-white rounded-xl p-6 shadow-lg border-l-4 ${getRiskColor(risk)} hover:shadow-xl transition-all duration-200`}>
+              <div className="flex justify-between items-start mb-4">
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">{milestone.title}</h3>
+                  <p className="text-gray-600 text-sm mb-3">{milestone.description}</p>
+                  
+                  {/* Auto-calculated Progress */}
+                  <div className="mb-4">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm font-medium text-gray-700">Progreso Automático</span>
+                      <span className="text-sm font-bold text-blue-600">{milestone.progress}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-3">
+                      <div 
+                        className="bg-gradient-to-r from-blue-500 to-green-500 h-3 rounded-full transition-all duration-500" 
+                        style={{ width: `${milestone.progress}%` }}
+                      ></div>
+                    </div>
+                  </div>
+
+                  {/* Connected Stories */}
+                  {milestone.story_titles && milestone.story_titles.length > 0 && (
+                    <div className="mb-4">
+                      <span className="text-sm font-medium text-gray-700 mb-2 block">
+                        📖 Historias Conectadas ({milestone.stories_count})
+                      </span>
+                      <div className="flex flex-wrap gap-2">
+                        {milestone.story_titles.map((storyTitle: string, index: number) => (
+                          <span key={index} className="bg-purple-100 text-purple-800 px-2 py-1 rounded-md text-xs font-medium border border-purple-200">
+                            {storyTitle}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-4 text-sm text-gray-500">
+                    <span className="flex items-center gap-1">
+                      📅 {new Date(milestone.due_date).toLocaleDateString()}
                     </span>
-                  </div>
-                )}
-                
-                <p className="text-sm text-gray-600 mb-2">{milestone.description}</p>
-                
-                {/* Barra de progreso */}
-                <div className="mb-3">
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-xs text-gray-500">Progreso</span>
-                    <span className="text-xs font-medium text-gray-700">{milestone.progress || 0}%</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-primary-600 h-2 rounded-full transition-all duration-300" 
-                      style={{ width: `${milestone.progress || 0}%` }}
-                    ></div>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(milestone.status)}`}>
+                      {getStatusIcon(milestone.status)} {getStatusText(milestone.status)}
+                    </span>
+                    {milestone.region && (
+                      <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded-md text-xs font-medium border border-blue-200">
+                        🌍 {milestone.region}
+                      </span>
+                    )}
                   </div>
                 </div>
-              </div>
-              
-              <div className="flex items-center gap-2 ml-4">
-                <button
-                  onClick={() => {
-                    setEditingMilestone(milestone)
-                    setShowModal(true)
-                  }}
-                  className="p-1 text-gray-400 hover:text-blue-600"
-                >
-                  <Edit size={14} />
-                </button>
-                <button
-                  onClick={() => handleDelete(milestone)}
-                  className="p-1 text-gray-400 hover:text-red-600"
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
-              <div className="flex items-center gap-1">
-                <Calendar size={14} />
-                <span>Fecha límite: {new Date(milestone.due_date).toLocaleDateString()}</span>
-              </div>
-              {milestone.region && (
-                <div className="flex items-center gap-1">
-                  <span>🌍</span>
-                  <span>Región: {milestone.region}</span>
+                
+                <div className="flex gap-2 ml-4">
+                  <button 
+                    onClick={() => { setEditingMilestone(milestone); setShowModal(true) }} 
+                    className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 p-2 rounded-md transition-colors"
+                    title="Editar hito"
+                  >
+                    <Edit size={18} />
+                  </button>
+                  <button 
+                    onClick={() => handleDeleteMilestone(milestone.id)} 
+                    className="text-red-600 hover:text-red-800 hover:bg-red-50 p-2 rounded-md transition-colors"
+                    title="Eliminar hito"
+                  >
+                    <Trash2 size={18} />
+                  </button>
                 </div>
-              )}
+              </div>
             </div>
-
-            {/* Comments Section */}
-            <CommentsSection
-              entityType="milestone"
-              entityId={milestone.id}
-              entityTitle={milestone.title}
-            />
-          </div>
-        ))}
-
-        {milestones.length === 0 && (
-          <div className="text-center py-8 text-gray-500">
-            No hay hitos definidos. Crea el primer hito del proyecto.
-          </div>
-        )}
+          )
+        })}
       </div>
+
+      {milestones.length === 0 && (
+        <div className="text-center py-12">
+          <Target size={48} className="mx-auto text-gray-400 mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No hay hitos creados</h3>
+          <p className="text-gray-500 mb-4">Crea tu primer hito para organizar las historias del proyecto</p>
+          <button 
+            onClick={() => { setEditingMilestone(null); setShowModal(true) }}
+            className="btn-primary"
+          >
+            Crear Primer Hito
+          </button>
+        </div>
+      )}
 
       {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-lg font-semibold mb-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">
               {editingMilestone ? 'Editar Hito' : 'Nuevo Hito'}
             </h3>
             
-            <form onSubmit={handleSave} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Título
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Título</label>
                 <input
                   type="text"
                   value={formData.title}
                   onChange={(e) => setFormData({...formData, title: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />
               </div>
-
+              
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Descripción
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({...formData, description: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   rows={3}
                 />
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Fecha Límite
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.due_date}
-                    onChange={(e) => setFormData({...formData, due_date: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Estado
-                  </label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) => setFormData({...formData, status: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  >
-                    <option value="planning">Planificación</option>
-                    <option value="in-progress">En Progreso</option>
-                    <option value="completed">Completado</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Historia Asociada
-                  </label>
-                  <select
-                    value={formData.story_id}
-                    onChange={(e) => setFormData({...formData, story_id: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  >
-                    <option value="">Sin historia asociada</option>
-                    {stories.map((story) => (
-                      <option key={story.id} value={story.id}>
-                        {story.title}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Región
-                  </label>
-                  <select
-                    value={formData.region}
-                    onChange={(e) => setFormData({...formData, region: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  >
-                    <option value="">Seleccionar región</option>
-                    <option value="TODAS">🌍 TODAS</option>
-                    <option value="CECA">CECA</option>
-                    <option value="SOLA">SOLA</option>
-                    <option value="MX">MX</option>
-                    <option value="SNAP">SNAP</option>
-                    <option value="COEC">COEC</option>
-                  </select>
-                </div>
-              </div>
-
+              
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Progreso: {formData.progress}%
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Fecha Límite</label>
                 <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={formData.progress}
-                  onChange={(e) => setFormData({...formData, progress: parseInt(e.target.value)})}
-                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                  type="date"
+                  value={formData.due_date}
+                  onChange={(e) => setFormData({...formData, due_date: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
                 />
-                <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
-                  <div 
-                    className="bg-primary-600 h-2 rounded-full transition-all duration-300" 
-                    style={{ width: `${formData.progress}%` }}
-                  ></div>
-                </div>
               </div>
-
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+                <select
+                  value={formData.status}
+                  onChange={(e) => setFormData({...formData, status: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="planning">Planificación</option>
+                  <option value="in-progress">En Progreso</option>
+                  <option value="completed">Completado</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Región</label>
+                <select
+                  value={formData.region}
+                  onChange={(e) => setFormData({...formData, region: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Todas las regiones</option>
+                  <option value="CECA">CECA</option>
+                  <option value="SOLA">SOLA</option>
+                  <option value="MX">MX</option>
+                  <option value="SNAP">SNAP</option>
+                  <option value="COEC">COEC</option>
+                </select>
+              </div>
+              
               <div className="flex gap-3 pt-4">
                 <button
                   type="button"
-                  onClick={() => {
-                    setShowModal(false)
-                    setEditingMilestone(null)
-                  }}
-                  className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                  onClick={() => setShowModal(false)}
+                  className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
                 >
                   {editingMilestone ? 'Actualizar' : 'Crear'}
                 </button>
