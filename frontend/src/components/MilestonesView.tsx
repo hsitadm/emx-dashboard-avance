@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Plus, Calendar, Target, Edit, Trash2, CheckCircle, Clock, AlertCircle } from 'lucide-react'
-import apiService from '../services/api.js'
+import api from '../services/api.js'
 
 const MilestonesView = () => {
   const [milestones, setMilestones] = useState<any[]>([])
@@ -42,7 +42,7 @@ const MilestonesView = () => {
   const loadMilestones = async () => {
     try {
       setLoading(true)
-      const data = await apiService.get('/milestones')
+      const data = await api.getMilestones()
       setMilestones(data)
     } catch (error) {
       console.error('Error loading milestones:', error)
@@ -55,9 +55,9 @@ const MilestonesView = () => {
     e.preventDefault()
     try {
       if (editingMilestone) {
-        await apiService.put(`/milestones/${editingMilestone.id}`, formData)
+        await api.updateMilestone(editingMilestone.id, formData)
       } else {
-        await apiService.post('/milestones', formData)
+        await api.createMilestone(formData)
       }
       await loadMilestones()
       setShowModal(false)
@@ -70,7 +70,7 @@ const MilestonesView = () => {
   const handleDeleteMilestone = async (id: number) => {
     if (window.confirm('¿Estás seguro de que quieres eliminar este hito?')) {
       try {
-        await apiService.delete(`/milestones/${id}`)
+        await api.deleteMilestone(id)
         await loadMilestones()
       } catch (error) {
         console.error('Error deleting milestone:', error)

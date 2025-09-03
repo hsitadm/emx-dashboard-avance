@@ -53,3 +53,5 @@ export const api = {
   getUsers: () => fetch(`${API_BASE_URL}/users`).then(res => res.json()),
   getCurrentUser: () => fetch(`${API_BASE_URL}/users/current`).then(res => res.json())
 };
+
+export default api;
