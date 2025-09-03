@@ -181,75 +181,59 @@ const MilestonesView = () => {
       </div>
 
       {/* Milestones Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4">
         {milestones.map((milestone) => {
           const risk = getRiskLevel(milestone)
           return (
-            <div key={milestone.id} className={`bg-white rounded-xl p-6 shadow-lg border-l-4 ${getRiskColor(risk)} hover:shadow-xl transition-all duration-200`}>
-              <div className="flex justify-between items-start mb-4">
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">{milestone.title}</h3>
-                  <p className="text-gray-600 text-sm mb-3">{milestone.description}</p>
-                  
-                  {/* Auto-calculated Progress */}
-                  <div className="mb-4">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm font-medium text-gray-700">Progreso Automático</span>
-                      <span className="text-sm font-bold text-blue-600">{milestone.progress}%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-3">
-                      <div 
-                        className="bg-gradient-to-r from-blue-500 to-green-500 h-3 rounded-full transition-all duration-500" 
-                        style={{ width: `${milestone.progress}%` }}
-                      ></div>
-                    </div>
+            <div key={milestone.id} className={`bg-white rounded-lg p-3 shadow-sm border-l-4 ${getRiskColor(risk)}`}>
+              <div className="mb-2">
+                <h3 className="text-sm font-semibold text-gray-900 mb-1 line-clamp-2">{milestone.title}</h3>
+                
+                {/* Auto-calculated Progress */}
+                <div className="mb-2">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs font-medium text-gray-700">Progreso</span>
+                    <span className="text-xs font-semibold text-gray-900">{milestone.progress}%</span>
                   </div>
-
-                  {/* Connected Stories */}
-                  {milestone.story_titles && milestone.story_titles.length > 0 && (
-                    <div className="mb-4">
-                      <span className="text-sm font-medium text-gray-700 mb-2 block">
-                        📖 Historias Conectadas ({milestone.stories_count})
-                      </span>
-                      <div className="flex flex-wrap gap-2">
-                        {milestone.story_titles.map((storyTitle: string, index: number) => (
-                          <span key={index} className="bg-purple-100 text-purple-800 px-2 py-1 rounded-md text-xs font-medium border border-purple-200">
-                            {storyTitle}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="flex items-center gap-4 text-sm text-gray-500">
-                    <span className="flex items-center gap-1">
-                      📅 {new Date(milestone.due_date).toLocaleDateString()}
-                    </span>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(milestone.status)}`}>
-                      {getStatusIcon(milestone.status)} {getStatusText(milestone.status)}
-                    </span>
-                    {milestone.region && (
-                      <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded-md text-xs font-medium border border-blue-200">
-                        🌍 {milestone.region}
-                      </span>
-                    )}
+                  <div className="w-full bg-gray-200 rounded-full h-1">
+                    <div 
+                      className="bg-gray-600 h-1 rounded-full transition-all duration-500" 
+                      style={{ width: `${milestone.progress}%` }}
+                    ></div>
                   </div>
                 </div>
-                
-                <div className="flex gap-2 ml-4">
+
+                {/* Metadata */}
+                <div className="flex items-center justify-between text-xs mb-2">
+                  <span className="flex items-center gap-1 text-gray-600">
+                    <Calendar size={10} />
+                    {new Date(milestone.due_date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })}
+                  </span>
+                  <span className="text-xs font-medium text-gray-600">
+                    {getRiskText(risk).split(' ')[0]}
+                  </span>
+                </div>
+
+                {/* Connected Stories */}
+                {milestone.story_titles && milestone.story_titles.length > 0 && (
+                  <div className="text-xs text-gray-500 mb-2">
+                    📖 {milestone.stories_count} historias
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="flex gap-1">
                   <button 
                     onClick={() => { setEditingMilestone(milestone); setShowModal(true) }} 
-                    className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 p-2 rounded-md transition-colors"
-                    title="Editar hito"
+                    className="flex-1 text-xs px-2 py-1 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors"
                   >
-                    <Edit size={18} />
+                    Editar
                   </button>
                   <button 
                     onClick={() => handleDeleteMilestone(milestone.id)} 
-                    className="text-red-600 hover:text-red-800 hover:bg-red-50 p-2 rounded-md transition-colors"
-                    title="Eliminar hito"
+                    className="flex-1 text-xs px-2 py-1 bg-red-50 text-red-600 rounded hover:bg-red-100 transition-colors"
                   >
-                    <Trash2 size={18} />
+                    Eliminar
                   </button>
                 </div>
               </div>
