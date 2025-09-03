@@ -11,7 +11,8 @@ const ProgressOverview = () => {
   const [filters, setFilters] = useState({
     milestoneStatus: 'all',
     storyStatus: 'all',
-    showCompleted: true
+    showCompleted: true,
+    selectedMilestone: 'all'
   })
 
   useEffect(() => {
@@ -59,6 +60,7 @@ const ProgressOverview = () => {
     return stories.filter(story => {
       if (filters.storyStatus !== 'all' && story.status !== filters.storyStatus) return false
       if (!filters.showCompleted && story.status === 'completed') return false
+      if (filters.selectedMilestone !== 'all' && story.milestone_id != filters.selectedMilestone) return false
       return true
     })
   }
@@ -270,6 +272,18 @@ const ProgressOverview = () => {
                 <option value="planning">Planificación</option>
                 <option value="in-progress">En Progreso</option>
                 <option value="completed">Completadas</option>
+              </select>
+              <select
+                value={filters.selectedMilestone}
+                onChange={(e) => setFilters({...filters, selectedMilestone: e.target.value})}
+                className="text-sm px-3 py-1 rounded border border-gray-300 bg-white"
+              >
+                <option value="all">Todos los hitos</option>
+                {milestones.map(milestone => (
+                  <option key={milestone.id} value={milestone.id}>
+                    {milestone.title.length > 25 ? milestone.title.substring(0, 25) + '...' : milestone.title}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
