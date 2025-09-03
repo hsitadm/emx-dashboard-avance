@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend } from 'recharts'
-import { RefreshCw } from 'lucide-react'
-import apiService from '../services/api.js'
+import { RefreshCw, Target, BookOpen, CheckSquare } from 'lucide-react'
+import api from '../services/api.js'
 
 const Charts = () => {
   const [regionData, setRegionData] = useState<any[]>([])
   const [statusData, setStatusData] = useState<any[]>([])
-  const [storyProgressData, setStoryProgressData] = useState<any[]>([])
+  const [milestoneData, setMilestoneData] = useState<any[]>([])
+  const [progressData, setProgressData] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -17,11 +18,11 @@ const Charts = () => {
     try {
       setLoading(true)
       
-      // Obtener datos de tareas y historias
-      const [tasks, stories, dashboardMetrics] = await Promise.all([
-        apiService.getTasks(),
-        apiService.request('/stories'),
-        apiService.getDashboardMetrics()
+      // Obtener datos de todas las entidades
+      const [tasks, stories, milestones] = await Promise.all([
+        api.getTasks(),
+        api.getStories(),
+        api.getMilestones()
       ])
 
       // Procesar datos por región
@@ -42,43 +43,64 @@ const Charts = () => {
         })
         
         setRegionData(Object.values(regionStats))
-      } else {
-        setRegionData([])
       }
 
-      // Procesar datos por estado
-      if (dashboardMetrics && dashboardMetrics.tasksByStatus) {
-        const statusStats = dashboardMetrics.tasksByStatus.map((item: any) => ({
-          name: getStatusLabel(item.status),
-          value: item.count,
-          color: getStatusColor(item.status)
+      // Procesar datos por estado (combinando tareas, historias y hitos)
+      const statusStats = [
+        { 
+          name: 'Planificación', 
+          tareas: tasks?.filter(t => t.status === 'planning').length || 0,
+          historias: stories?.filter(s => s.status === 'planning').length || 0,
+          hitos: milestones?.filter(m => m.status === 'planning').length || 0
+        },
+        { 
+          name: 'En Progreso', 
+          tareas: tasks?.filter(t => t.status === 'in-progress').length || 0,
+          historias: stories?.filter(s => s.status === 'in-progress').length || 0,
+          hitos: milestones?.filter(m => m.status === 'in-progress').length || 0
+        },
+        { 
+          name: 'Completado', 
+          tareas: tasks?.filter(t => t.status === 'completed').length || 0,
+          historias: stories?.filter(s => s.status === 'completed').length || 0,
+          hitos: milestones?.filter(m => m.status === 'completed').length || 0
+        }
+      ]
+      setStatusData(statusStats)
+
+      // Procesar datos de hitos con progreso
+      if (milestones && milestones.length > 0) {
+        const milestoneStats = milestones.map((milestone: any) => ({
+          name: milestone.title.length > 15 ? milestone.title.substring(0, 15) + '...' : milestone.title,
+          progreso: milestone.progress || 0,
+          historias: milestone.stories_count || 0,
+          estado: milestone.status
         }))
-        setStatusData(statusStats)
+        setMilestoneData(milestoneStats)
       }
 
-      // Progreso de historias
-      if (stories && stories.length > 0) {
-        const storyProgress = stories.map((story: any) => {
-          let shortName = story.title
-          if (story.title.includes('Comunicación')) shortName = 'Comunicación'
-          else if (story.title.includes('Transición')) shortName = 'Transición Equipos'
-          else if (story.title.includes('Estabilización')) shortName = 'Estabilización'
-          else if (story.title.includes('Nuevas Ofertas')) shortName = 'Nuevas Ofertas'
-          else if (story.title.length > 15) shortName = story.title.substring(0, 15) + '...'
-          
-          return {
-            name: shortName,
-            fullName: story.title,
-            progress: story.progress || 0,
-            tasks: story.task_count || 0,
-            completed: story.completed_tasks || 0,
-            status: story.status
-          }
-        })
-        setStoryProgressData(storyProgress)
-      } else {
-        setStoryProgressData([])
-      }
+      // Datos de progreso general
+      const progressStats = [
+        {
+          categoria: 'Hitos',
+          promedio: milestones?.length > 0 ? Math.round(milestones.reduce((sum: number, m: any) => sum + (m.progress || 0), 0) / milestones.length) : 0,
+          completados: milestones?.filter(m => m.status === 'completed').length || 0,
+          total: milestones?.length || 0
+        },
+        {
+          categoria: 'Historias',
+          promedio: stories?.length > 0 ? Math.round(stories.reduce((sum: number, s: any) => sum + (s.story_progress || 0), 0) / stories.length) : 0,
+          completados: stories?.filter(s => s.status === 'completed').length || 0,
+          total: stories?.length || 0
+        },
+        {
+          categoria: 'Tareas',
+          promedio: tasks?.length > 0 ? Math.round(tasks.reduce((sum: number, t: any) => sum + (t.progress || 0), 0) / tasks.length) : 0,
+          completados: tasks?.filter(t => t.status === 'completed').length || 0,
+          total: tasks?.length || 0
+        }
+      ]
+      setProgressData(progressStats)
 
     } catch (error) {
       console.error('Error loading chart data:', error)
@@ -87,226 +109,152 @@ const Charts = () => {
     }
   }
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'completed': return 'Completado'
-      case 'in-progress': return 'En Progreso'
-      case 'review': return 'En Revisión'
-      case 'planning': return 'Planificación'
-      default: return status
-    }
-  }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed': return '#10b981'
-      case 'in-progress': return '#3b82f6'
-      case 'review': return '#f59e0b'
-      case 'planning': return '#6b7280'
-      default: return '#9ca3af'
-    }
-  }
+  const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#8dd1e1']
 
   if (loading) {
     return (
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="card animate-pulse">
-            <div className="h-4 bg-gray-200 rounded mb-4"></div>
-            <div className="h-64 bg-gray-100 rounded"></div>
-          </div>
-        ))}
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
-      {/* Botón de recarga */}
-      <div className="flex justify-end">
-        <button
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">📊 Análisis del Proyecto EMx</h2>
+          <p className="text-sm text-gray-600 mt-1">Análisis completo de hitos, historias y tareas</p>
+        </div>
+        <button 
           onClick={loadChartData}
-          className="flex items-center gap-2 px-3 py-2 text-sm bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
           <RefreshCw size={16} />
-          Actualizar Datos
+          Actualizar
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Gráfico de Barras - Tareas por Región */}
-        <div className="card">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Tareas por Región 
-            <span className="text-sm font-normal text-gray-500 ml-2">
-              ({regionData.length} regiones)
-            </span>
-          </h3>
-          {regionData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={regionData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis 
-                  dataKey="name" 
-                  tick={{ fontSize: 12 }}
-                />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="completed" fill="#10b981" name="Completadas" />
-                <Bar dataKey="pending" fill="#f59e0b" name="Pendientes" />
-              </BarChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="h-64 flex items-center justify-center text-gray-500">
-              <div className="text-center">
-                <div className="text-4xl mb-2">🌍</div>
-                <p>No hay datos por región</p>
-                <p className="text-sm">Haz clic en "Actualizar Datos" para recargar</p>
+      {/* Progress Overview Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {progressData.map((item, index) => (
+          <div key={index} className="bg-white rounded-lg p-6 shadow-lg border border-gray-200">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                {item.categoria === 'Hitos' && <Target className="text-blue-600" size={24} />}
+                {item.categoria === 'Historias' && <BookOpen className="text-purple-600" size={24} />}
+                {item.categoria === 'Tareas' && <CheckSquare className="text-green-600" size={24} />}
+                <h3 className="text-lg font-semibold text-gray-900">{item.categoria}</h3>
+              </div>
+              <span className="text-2xl font-bold text-gray-900">{item.promedio}%</span>
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Completados</span>
+                <span className="font-medium">{item.completados}/{item.total}</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className="bg-blue-600 h-2 rounded-full transition-all duration-500" 
+                  style={{ width: `${item.total > 0 ? (item.completados / item.total) * 100 : 0}%` }}
+                ></div>
               </div>
             </div>
-          )}
-          <div className="mt-2 text-xs text-gray-500 text-center">
-            {regionData.length > 0 
-              ? `Verde = Completadas, Amarillo = Pendientes | Total: ${regionData.reduce((acc, r) => acc + r.total, 0)} tareas`
-              : 'No hay datos disponibles'
-            }
           </div>
-        </div>
+        ))}
+      </div>
 
-        {/* Gráfico Circular - Estado de Tareas */}
-        <div className="card">
+      {/* Charts Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        
+        {/* Status Distribution */}
+        <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Distribución por Estado</h3>
-          {statusData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={250}>
-              <PieChart>
-                <Pie
-                  data={statusData}
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={80}
-                  dataKey="value"
-                  label={({ name, value }) => `${name}: ${value}`}
-                >
-                  {statusData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="h-64 flex items-center justify-center text-gray-500">
-              <div className="text-center">
-                <div className="text-4xl mb-2">📊</div>
-                <p>No hay datos de estado</p>
-                <p className="text-sm">Los estados se mostrarán cuando haya tareas</p>
-              </div>
-            </div>
-          )}
-          <div className="mt-2 text-xs text-gray-500 text-center">
-            {statusData.length > 0 
-              ? `Total de ${statusData.reduce((acc, item) => acc + item.value, 0)} tareas en el sistema`
-              : 'Cargando distribución por estado...'
-            }
-          </div>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={statusData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" />
+              <YAxis />
+              <Tooltip />
+              <Legend />
+              <Bar dataKey="hitos" fill="#8884d8" name="Hitos" />
+              <Bar dataKey="historias" fill="#82ca9d" name="Historias" />
+              <Bar dataKey="tareas" fill="#ffc658" name="Tareas" />
+            </BarChart>
+          </ResponsiveContainer>
         </div>
 
-        {/* Gráfico de Progreso de Historias */}
-        <div className="card lg:col-span-2">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Progreso de Historias del Proyecto</h3>
-          {storyProgressData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={350}>
-              <BarChart 
-                data={storyProgressData} 
-                margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+        {/* Milestone Progress */}
+        <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Progreso de Hitos</h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={milestoneData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" />
+              <YAxis />
+              <Tooltip />
+              <Bar dataKey="progreso" fill="#8884d8" name="Progreso %" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Regional Distribution */}
+        <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Distribución por Región</h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <PieChart>
+              <Pie
+                data={regionData}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                label={({ name, value }) => `${name}: ${value}`}
+                outerRadius={80}
+                fill="#8884d8"
+                dataKey="total"
               >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis 
-                  dataKey="name" 
-                  angle={-25}
-                  textAnchor="end"
-                  height={100}
-                  interval={0}
-                  fontSize={12}
-                  tick={{ fontSize: 12 }}
-                />
-                <YAxis 
-                  domain={[0, 100]}
-                  label={{ value: 'Progreso (%)', angle: -90, position: 'insideLeft' }}
-                />
-                <Tooltip 
-                  formatter={(value: any, name: string) => [
-                    name === 'progress' ? `${value}%` : value,
-                    name === 'progress' ? 'Progreso' : 
-                    name === 'tasks' ? 'Total Tareas' : 
-                    name === 'completed' ? 'Completadas' : name
-                  ]}
-                  labelFormatter={(label) => {
-                    const story = storyProgressData.find(s => s.name === label)
-                    return story ? story.fullName : label
-                  }}
-                  contentStyle={{
-                    backgroundColor: '#f9fafb',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '6px'
-                  }}
-                />
-                <Bar 
-                  dataKey="progress" 
-                  fill="#3b82f6" 
-                  name="Progreso"
-                  radius={[4, 4, 0, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="h-64 flex items-center justify-center text-gray-500">
-              <div className="text-center">
-                <div className="text-4xl mb-2">📚</div>
-                <p>No hay historias disponibles</p>
-                <p className="text-sm">Crea historias en la pestaña correspondiente</p>
-              </div>
-            </div>
-          )}
-          <div className="mt-2 text-xs text-gray-500 text-center">
-            {storyProgressData.length > 0 
-              ? 'Progreso calculado automáticamente basado en tareas completadas por historia'
-              : 'Ve a la pestaña Historias para crear y gestionar historias del proyecto'
-            }
-          </div>
+                {regionData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip />
+            </PieChart>
+          </ResponsiveContainer>
         </div>
 
-        {/* Métricas Adicionales */}
-        <div className="card lg:col-span-2">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Métricas del Proyecto</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center p-4 bg-blue-50 rounded-lg">
-              <div className="text-2xl font-bold text-blue-600">
-                {regionData.reduce((acc, region) => acc + region.total, 0)}
-              </div>
-              <div className="text-sm text-blue-700">Total Tareas</div>
-            </div>
-            <div className="text-center p-4 bg-green-50 rounded-lg">
-              <div className="text-2xl font-bold text-green-600">
-                {regionData.reduce((acc, region) => acc + region.completed, 0)}
-              </div>
-              <div className="text-sm text-green-700">Completadas</div>
-            </div>
-            <div className="text-center p-4 bg-yellow-50 rounded-lg">
-              <div className="text-2xl font-bold text-yellow-600">
-                {storyProgressData.length}
-              </div>
-              <div className="text-sm text-yellow-700">Historias Activas</div>
-            </div>
-            <div className="text-center p-4 bg-purple-50 rounded-lg">
-              <div className="text-2xl font-bold text-purple-600">
-                {storyProgressData.length > 0 
-                  ? Math.round(storyProgressData.reduce((acc, story) => acc + story.progress, 0) / storyProgressData.length)
-                  : 0}%
-              </div>
-              <div className="text-sm text-purple-700">Progreso Promedio</div>
-            </div>
+        {/* Progress Comparison */}
+        <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Comparación de Progreso</h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={progressData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="categoria" />
+              <YAxis />
+              <Tooltip />
+              <Legend />
+              <Line type="monotone" dataKey="promedio" stroke="#8884d8" strokeWidth={3} name="Progreso Promedio %" />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+
+      </div>
+
+      {/* Summary Stats */}
+      <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Resumen Estadístico</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="text-center">
+            <div className="text-3xl font-bold text-blue-600 mb-2">{milestoneData.length}</div>
+            <div className="text-sm text-gray-600">Hitos Totales</div>
+          </div>
+          <div className="text-center">
+            <div className="text-3xl font-bold text-purple-600 mb-2">{progressData.find(p => p.categoria === 'Historias')?.total || 0}</div>
+            <div className="text-sm text-gray-600">Historias Totales</div>
+          </div>
+          <div className="text-center">
+            <div className="text-3xl font-bold text-green-600 mb-2">{progressData.find(p => p.categoria === 'Tareas')?.total || 0}</div>
+            <div className="text-sm text-gray-600">Tareas Totales</div>
           </div>
         </div>
       </div>
