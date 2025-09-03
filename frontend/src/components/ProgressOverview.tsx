@@ -1,562 +1,260 @@
 import { useState, useEffect } from 'react'
-import { TrendingUp, Users, CheckCircle, Clock, BookOpen, Target } from 'lucide-react'
-import apiService from '../services/api.js'
-import { mockStories, getTasksByStoryId } from '../data/mockData'
+import { TrendingUp, Target, CheckCircle, Clock, AlertTriangle, BookOpen, Calendar } from 'lucide-react'
+import api from '../services/api.js'
 
 const ProgressOverview = () => {
-  const [stories, setStories] = useState<any[]>([])
-  const [selectedStory, setSelectedStory] = useState<any>(null)
-  const [storyTasks, setStoryTasks] = useState<any[]>([])
   const [milestones, setMilestones] = useState<any[]>([])
-  const [metrics, setMetrics] = useState({
-    totalStories: 0,
-    completedStories: 0,
-    totalTasks: 0,
-    completedTasks: 0,
-    generalProgress: 0
-  })
+  const [stories, setStories] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     loadData()
-    
-    // Listener para actualizar cuando se modifican hitos
-    const handleMilestoneUpdate = () => {
-      console.log('Milestone updated event received')
-      loadData()
-    }
-    
-    // Listener para actualizar cuando se enfoca la ventana
-    const handleFocus = () => {
-      loadData()
-    }
-    
-    window.addEventListener('milestoneUpdated', handleMilestoneUpdate)
-    window.addEventListener('focus', handleFocus)
-    
-    // Intervalo para actualizar cada 30 segundos
+    // Auto-refresh every 30 seconds
     const interval = setInterval(loadData, 30000)
-    
-    return () => {
-      window.removeEventListener('milestoneUpdated', handleMilestoneUpdate)
-      window.removeEventListener('focus', handleFocus)
-      clearInterval(interval)
-    }
+    return () => clearInterval(interval)
   }, [])
 
   const loadData = async () => {
     try {
-      const [storiesData, dashboardData, milestonesData] = await Promise.all([
-        apiService.request('/stories'),
-        apiService.getDashboardMetrics(),
-        apiService.request('/milestones')
+      setLoading(true)
+      const [milestonesData, storiesData] = await Promise.all([
+        api.getMilestones(),
+        api.getStories()
       ])
-      
-      setStories(storiesData)
       setMilestones(milestonesData)
-      
-      const completedStories = storiesData.filter((s: any) => s.status === 'completed').length
-      const avgProgress = storiesData.reduce((acc: number, story: any) => acc + (story.progress || 0), 0) / storiesData.length || 0
-      
-      setMetrics({
-        totalStories: storiesData.length,
-        completedStories,
-        totalTasks: dashboardData.totalTasks,
-        completedTasks: dashboardData.completedTasks,
-        generalProgress: Math.round(avgProgress)
-      })
+      setStories(storiesData)
     } catch (error) {
       console.error('Error loading data:', error)
-      // Fallback to empty data
-      setStories([])
-      setMilestones([])
-      setMetrics({
-        totalStories: 0,
-        completedStories: 0,
-        totalTasks: 0,
-        completedTasks: 0,
-        generalProgress: 0
-      })
-    }
-  }
-
-  const loadStoryTasks = async (storyId: number) => {
-    try {
-      const tasks = await apiService.request(`/stories/${storyId}/tasks`)
-      setStoryTasks(tasks)
-    } catch (error) {
-      console.error('Error loading story tasks:', error)
-      setStoryTasks([])
-    }
-  }
-
-  const handleStoryClick = (story: any) => {
-    if (selectedStory?.id === story.id) {
-      setSelectedStory(null)
-      setStoryTasks([])
-    } else {
-      setSelectedStory(story)
-      loadStoryTasks(story.id)
+    } finally {
+      setLoading(false)
     }
   }
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed': return 'bg-green-100 text-green-800 border-green-200'
-      case 'in-progress': return 'bg-blue-100 text-blue-800 border-blue-200'
-      case 'active': return 'bg-yellow-100 text-yellow-800 border-yellow-200'
+      case 'in-progress': return 'bg-yellow-100 text-yellow-800 border-yellow-200'
+      case 'planning': return 'bg-blue-100 text-blue-800 border-blue-200'
       default: return 'bg-gray-100 text-gray-800 border-gray-200'
     }
   }
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high': return 'text-red-600'
-      case 'medium': return 'text-yellow-600'
-      case 'low': return 'text-green-600'
-      default: return 'text-gray-600'
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'completed': return <CheckCircle size={16} />
+      case 'in-progress': return <Clock size={16} />
+      case 'planning': return <Target size={16} />
+      default: return <AlertTriangle size={16} />
     }
   }
 
-  const metricsCards = [
-    {
-      title: 'Historias Completadas',
-      value: `${metrics.completedStories}/${metrics.totalStories}`,
-      change: `${Math.round((metrics.completedStories / metrics.totalStories) * 100) || 0}% del proyecto`,
-      icon: BookOpen,
-      color: 'text-blue-600'
-    },
-    {
-      title: 'Progreso General',
-      value: `${metrics.generalProgress}%`,
-      change: 'Basado en historias',
-      icon: TrendingUp,
-      color: 'text-green-600'
-    },
-    {
-      title: 'Tareas Completadas',
-      value: `${metrics.completedTasks}/${metrics.totalTasks}`,
-      change: 'Todas las historias',
-      icon: CheckCircle,
-      color: 'text-purple-600'
-    },
-    {
-      title: 'Días Restantes',
-      value: '45',
-      change: 'Para Q4 2025',
-      icon: Clock,
-      color: 'text-orange-600'
+  const getRiskLevel = (milestone: any) => {
+    const dueDate = new Date(milestone.due_date)
+    const today = new Date()
+    const daysUntilDue = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+    
+    if (milestone.status === 'completed') return 'success'
+    if (daysUntilDue < 0) return 'overdue'
+    if (daysUntilDue <= 7 && milestone.progress < 80) return 'high'
+    if (daysUntilDue <= 14 && milestone.progress < 60) return 'medium'
+    return 'low'
+  }
+
+  const getRiskColor = (risk: string) => {
+    switch (risk) {
+      case 'success': return 'border-l-green-500 bg-green-50'
+      case 'overdue': return 'border-l-red-500 bg-red-50'
+      case 'high': return 'border-l-red-400 bg-red-50'
+      case 'medium': return 'border-l-yellow-400 bg-yellow-50'
+      default: return 'border-l-blue-400 bg-blue-50'
     }
-  ]
+  }
+
+  const getRiskText = (risk: string) => {
+    switch (risk) {
+      case 'success': return '✅ Completado'
+      case 'overdue': return '🚨 Vencido'
+      case 'high': return '🔴 Alto Riesgo'
+      case 'medium': return '🟡 Riesgo Medio'
+      default: return '🟢 Bajo Riesgo'
+    }
+  }
+
+  // Calculate overall metrics
+  const totalMilestones = milestones.length
+  const completedMilestones = milestones.filter(m => m.status === 'completed').length
+  const overallProgress = totalMilestones > 0 ? Math.round(milestones.reduce((sum, m) => sum + m.progress, 0) / totalMilestones) : 0
+  const atRiskMilestones = milestones.filter(m => ['overdue', 'high'].includes(getRiskLevel(m))).length
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    )
+  }
 
   return (
-    <>
-      <div className="space-y-6">
-        {/* Métricas Principales */}
-        <div className="card">
-        <h2 className="text-xl font-semibold text-gray-900 mb-6">Resumen Ejecutivo del Proyecto EMx</h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {metricsCards.map((metric, index) => (
-            <div key={index} className="text-center">
-              <div className={`inline-flex items-center justify-center w-12 h-12 rounded-lg bg-gray-100 mb-3`}>
-                <metric.icon className={`w-6 h-6 ${metric.color}`} />
-              </div>
-              <div className="text-2xl font-bold text-gray-900 mb-1">
-                {metric.value}
-              </div>
-              <div className="text-sm text-gray-600 mb-1">
-                {metric.title}
-              </div>
-              <div className="text-xs text-green-600 font-medium">
-                {metric.change}
-              </div>
+    <div className="space-y-8">
+      {/* Executive Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-6 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-blue-100 text-sm">Progreso General</p>
+              <p className="text-3xl font-bold">{overallProgress}%</p>
             </div>
-          ))}
-        </div>
-
-        {/* Barra de Progreso General */}
-        <div className="mb-6">
-          <div className="flex justify-between text-sm mb-2">
-            <span className="font-medium text-gray-700">Progreso General del Proyecto</span>
-            <span className="text-gray-500">{metrics.generalProgress}%</span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-3">
-            <div 
-              className="bg-gradient-to-r from-primary-500 to-primary-600 h-3 rounded-full transition-all duration-500"
-              style={{ width: `${metrics.generalProgress}%` }}
-            ></div>
+            <TrendingUp size={32} className="text-blue-200" />
           </div>
         </div>
-
-        <div className="text-center">
-          <p className="text-sm text-gray-600">
-            El progreso se calcula en base al avance de las historias principales del proyecto
-          </p>
+        
+        <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-6 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-green-100 text-sm">Hitos Completados</p>
+              <p className="text-3xl font-bold">{completedMilestones}/{totalMilestones}</p>
+            </div>
+            <CheckCircle size={32} className="text-green-200" />
+          </div>
+        </div>
+        
+        <div className="bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-xl p-6 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-yellow-100 text-sm">En Riesgo</p>
+              <p className="text-3xl font-bold">{atRiskMilestones}</p>
+            </div>
+            <AlertTriangle size={32} className="text-yellow-200" />
+          </div>
+        </div>
+        
+        <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl p-6 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-purple-100 text-sm">Historias Activas</p>
+              <p className="text-3xl font-bold">{stories.length}</p>
+            </div>
+            <BookOpen size={32} className="text-purple-200" />
+          </div>
         </div>
       </div>
 
-      {/* Historias Principales - Vista Resumida */}
-      <div className="card">
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-            <BookOpen className="w-5 h-5 text-primary-600" />
-            Estado de las Historias
-          </h3>
-          <span className="text-sm text-gray-500">Vista ejecutiva</span>
+      {/* Milestones Section */}
+      <div>
+        <div className="flex items-center gap-3 mb-6">
+          <Target className="text-blue-600" size={24} />
+          <h2 className="text-2xl font-bold text-gray-900">🎯 Hitos Estratégicos</h2>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {stories.map((story, index) => (
-            <div 
-              key={story.id} 
-              onClick={() => handleStoryClick(story)}
-              className={`border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all cursor-pointer ${
-                selectedStory?.id === story.id ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:shadow-sm'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <h4 className="font-medium text-gray-900">{story.title}</h4>
-                  {story.status === 'completed' && (
-                    <Target className="w-4 h-4 text-green-600" title="Convertida en hito" />
-                  )}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {milestones.map((milestone) => {
+            const risk = getRiskLevel(milestone)
+            return (
+              <div key={milestone.id} className={`bg-white rounded-xl p-6 shadow-lg border-l-4 ${getRiskColor(risk)} hover:shadow-xl transition-all duration-200`}>
+                <div className="flex justify-between items-start mb-4">
+                  <div className="flex-1">
+                    <h3 className="text-lg font-bold text-gray-900 mb-2">{milestone.title}</h3>
+                    <p className="text-gray-600 text-sm mb-3">{milestone.description}</p>
+                    
+                    {/* Progress Bar */}
+                    <div className="mb-4">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-sm font-medium text-gray-700">Progreso</span>
+                        <span className="text-sm font-bold text-blue-600">{milestone.progress}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-3">
+                        <div 
+                          className="bg-gradient-to-r from-blue-500 to-green-500 h-3 rounded-full transition-all duration-500" 
+                          style={{ width: `${milestone.progress}%` }}
+                        ></div>
+                      </div>
+                    </div>
+
+                    {/* Metadata */}
+                    <div className="flex items-center gap-4 text-sm">
+                      <span className="flex items-center gap-1 text-gray-600">
+                        <Calendar size={14} />
+                        {new Date(milestone.due_date).toLocaleDateString()}
+                      </span>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(milestone.status)}`}>
+                        {getStatusIcon(milestone.status)} {milestone.status === 'completed' ? 'Completado' : milestone.status === 'in-progress' ? 'En Progreso' : 'Planificación'}
+                      </span>
+                      <span className="text-xs font-medium text-gray-600">
+                        {getRiskText(risk)}
+                      </span>
+                    </div>
+
+                    {/* Connected Stories */}
+                    {milestone.story_titles && milestone.story_titles.length > 0 && (
+                      <div className="mt-3">
+                        <span className="text-xs text-gray-500 mb-1 block">
+                          📖 {milestone.stories_count} historias conectadas
+                        </span>
+                        <div className="flex flex-wrap gap-1">
+                          {milestone.story_titles.slice(0, 3).map((storyTitle: string, index: number) => (
+                            <span key={index} className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs">
+                              {storyTitle.length > 20 ? storyTitle.substring(0, 20) + '...' : storyTitle}
+                            </span>
+                          ))}
+                          {milestone.story_titles.length > 3 && (
+                            <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">
+                              +{milestone.story_titles.length - 3} más
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(story.status)}`}>
-                  {story.status === 'completed' ? 'Completada' : 
-                   story.status === 'in-progress' ? 'En Progreso' : 'Activa'}
-                </span>
               </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Stories Section */}
+      <div>
+        <div className="flex items-center gap-3 mb-6">
+          <BookOpen className="text-purple-600" size={24} />
+          <h2 className="text-2xl font-bold text-gray-900">📖 Historias del Proyecto</h2>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {stories.map((story) => (
+            <div key={story.id} className="bg-white rounded-xl p-6 shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-200">
+              <h3 className="text-lg font-bold text-gray-900 mb-2">{story.title}</h3>
+              <p className="text-gray-600 text-sm mb-4">{story.description}</p>
               
-              {/* Barra de progreso compacta */}
-              <div className="mb-3">
-                <div className="flex justify-between text-xs text-gray-500 mb-1">
-                  <span>{story.completed_tasks || 0}/{story.task_count || 0} tareas</span>
-                  <span>{story.progress || 0}%</span>
+              {/* Story Progress */}
+              <div className="mb-4">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-medium text-gray-700">Progreso</span>
+                  <span className="text-sm font-bold text-purple-600">{Math.round(story.story_progress || 0)}%</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div 
-                    className={`h-2 rounded-full transition-all duration-300 ${
-                      story.status === 'completed' ? 'bg-green-500' : 'bg-primary-600'
-                    }`}
-                    style={{ width: `${story.progress || 0}%` }}
+                    className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all duration-500" 
+                    style={{ width: `${story.story_progress || 0}%` }}
                   ></div>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between text-xs text-gray-500">
-                <div className="flex items-center gap-2">
-                  <Users size={12} />
-                  <span>{story.assignee_name || 'Sin asignar'}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Clock size={12} />
-                  <span>{story.target_date ? new Date(story.target_date).toLocaleDateString() : 'Sin fecha'}</span>
-                </div>
-                <div className={`flex items-center gap-1 ${getPriorityColor(story.priority)}`}>
-                  <span>●</span>
-                  <span className="capitalize">{story.priority}</span>
-                </div>
+              {/* Story Metadata */}
+              <div className="flex items-center justify-between text-sm">
+                <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(story.status)}`}>
+                  {getStatusIcon(story.status)} {story.status === 'completed' ? 'Completada' : story.status === 'in-progress' ? 'En Progreso' : 'Planificación'}
+                </span>
+                {story.milestone_title && (
+                  <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
+                    🎯 {story.milestone_title}
+                  </span>
+                )}
               </div>
             </div>
           ))}
-
-          {stories.length === 0 && (
-            <div className="col-span-2 text-center py-8 text-gray-500">
-              <BookOpen size={48} className="mx-auto mb-4 text-gray-300" />
-              <p>No hay historias disponibles</p>
-              <p className="text-sm">Ve a la pestaña Historias para crear la primera</p>
-            </div>
-          )}
-        </div>
-
-        {/* Detalles de Historia Seleccionada */}
-        {selectedStory && (
-          <div className="mt-6 pt-6 border-t-4 border-blue-200 bg-blue-50/30">
-            <div className="bg-white rounded-lg border-2 border-blue-200 p-6 shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold text-gray-900 flex items-center gap-3">
-                  <div className="p-2 bg-blue-100 rounded-lg">
-                    <Target className="w-5 h-5 text-blue-600" />
-                  </div>
-                  Detalles de Historia: {selectedStory.title}
-                </h3>
-                <button 
-                  onClick={() => setSelectedStory(null)}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
-                  title="Cerrar detalles"
-                >
-                  ✕
-                </button>
-              </div>
-              
-              {selectedStory.description && (
-                <p className="text-sm text-gray-600 mb-4">{selectedStory.description}</p>
-              )}
-              
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 text-sm">
-                <div>
-                  <span className="text-gray-500">Estado:</span>
-                  <div className={`mt-1 px-2 py-1 rounded text-xs font-medium inline-block ${
-                    selectedStory.status === 'completed' ? 'bg-green-100 text-green-800' :
-                    selectedStory.status === 'in-progress' ? 'bg-blue-100 text-blue-800' :
-                    'bg-gray-100 text-gray-800'
-                  }`}>
-                    {selectedStory.status === 'completed' ? 'Completada' : 
-                     selectedStory.status === 'in-progress' ? 'En Progreso' : 'Activa'}
-                  </div>
-                </div>
-                <div>
-                  <span className="text-gray-500">Responsable:</span>
-                  <div className="mt-1 font-medium">{selectedStory.assignee_name || 'Sin asignar'}</div>
-                </div>
-                <div>
-                  <span className="text-gray-500">Fecha objetivo:</span>
-                  <div className="mt-1 font-medium">
-                    {selectedStory.target_date ? new Date(selectedStory.target_date).toLocaleDateString() : 'Sin fecha'}
-                  </div>
-                </div>
-                <div>
-                  <span className="text-gray-500">Progreso:</span>
-                  <div className="mt-1 font-medium">{selectedStory.progress || 0}%</div>
-                </div>
-              </div>
-
-              {/* Resumen de tareas */}
-              {storyTasks.length > 0 && (
-                <div className="mb-6">
-                  <div className="flex justify-between items-center mb-3">
-                    <h4 className="font-medium text-gray-900">Resumen de tareas</h4>
-                    <span className="text-sm text-gray-500">
-                      {storyTasks.filter(t => t.status === 'completed').length} de {storyTasks.length} completadas
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-3 text-sm">
-                    <div className="text-center p-3 bg-green-50 rounded-lg">
-                      <div className="font-semibold text-green-700 text-lg">
-                        {storyTasks.filter(t => t.status === 'completed').length}
-                      </div>
-                      <div className="text-green-600">Completadas</div>
-                    </div>
-                    <div className="text-center p-3 bg-blue-50 rounded-lg">
-                      <div className="font-semibold text-blue-700 text-lg">
-                        {storyTasks.filter(t => t.status === 'in-progress').length}
-                      </div>
-                      <div className="text-blue-600">En Progreso</div>
-                    </div>
-                    <div className="text-center p-3 bg-gray-50 rounded-lg">
-                      <div className="font-semibold text-gray-700 text-lg">
-                        {storyTasks.filter(t => t.status === 'planning').length}
-                      </div>
-                      <div className="text-gray-600">Pendientes</div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Lista de tareas */}
-              <div>
-                <h4 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
-                  <Clock className="w-4 h-4" />
-                  Tareas Asociadas ({storyTasks.length})
-                </h4>
-                <div className="space-y-3 max-h-60 overflow-y-auto">
-                  {storyTasks.map((task) => (
-                    <div key={task.id} className="border border-gray-200 rounded-lg p-3 bg-gray-50">
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <div className={`w-3 h-3 rounded-full ${
-                            task.status === 'completed' ? 'bg-green-500' : 
-                            task.status === 'in-progress' ? 'bg-blue-500' : 'bg-gray-400'
-                          }`}></div>
-                          <h5 className="font-medium text-gray-900 text-sm">{task.title}</h5>
-                        </div>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          task.status === 'completed' ? 'bg-green-100 text-green-800' :
-                          task.status === 'in-progress' ? 'bg-blue-100 text-blue-800' :
-                          'bg-gray-100 text-gray-800'
-                        }`}>
-                          {task.status === 'completed' ? 'Completada' :
-                           task.status === 'in-progress' ? 'En Progreso' : 'Pendiente'}
-                        </span>
-                      </div>
-                      
-                      <div className="flex items-center justify-between text-xs text-gray-500">
-                        <div className="flex items-center gap-3">
-                          <span>👤 {task.assignee_name || 'Sin asignar'}</span>
-                          {task.due_date && (
-                            <span>📅 {new Date(task.due_date).toLocaleDateString()}</span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-12 bg-gray-200 rounded-full h-1.5">
-                            <div 
-                              className={`h-1.5 rounded-full transition-all duration-300 ${
-                                task.status === 'completed' ? 'bg-green-500' : 'bg-blue-500'
-                              }`}
-                              style={{ width: `${task.progress || 0}%` }}
-                            ></div>
-                          </div>
-                          <span className="font-medium">{task.progress || 0}%</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  {storyTasks.length === 0 && (
-                    <div className="text-center py-6 text-gray-500">
-                      <Clock className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-                      <p className="text-sm">No hay tareas asignadas a esta historia</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {stories.length > 0 && !selectedStory && (
-          <div className="mt-6 pt-4 border-t border-gray-200 text-center">
-            <p className="text-sm text-gray-600">
-              <strong>💡 Tip:</strong> Haz clic en cualquier historia para ver sus tareas asociadas
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Separador Visual */}
-      <div className="flex items-center justify-center py-8">
-        <div className="flex items-center gap-4 w-full max-w-md">
-          <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-gray-300"></div>
-          <div className="flex items-center gap-2 px-4 py-2 bg-primary-50 rounded-full border border-primary-200">
-            <Target className="w-4 h-4 text-primary-600" />
-            <span className="text-sm font-medium text-primary-700">HITOS DEL PROYECTO</span>
-          </div>
-          <div className="flex-1 h-px bg-gradient-to-l from-transparent via-gray-300 to-gray-300"></div>
         </div>
       </div>
-
-      {/* Resumen de Hitos */}
-      <div className="card bg-gradient-to-br from-gray-50 to-white border-2 border-gray-200">
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="text-xl font-bold text-gray-900 flex items-center gap-3">
-            <div className="p-2 bg-primary-100 rounded-lg">
-              <Target className="w-6 h-6 text-primary-600" />
-            </div>
-            Hitos del Proyecto
-          </h3>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-primary-500 rounded-full"></div>
-            <span className="text-sm text-gray-500 font-medium">Estado general</span>
-          </div>
-        </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-            <div className="text-center p-6 bg-green-50 rounded-lg border border-green-200">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-green-100 mb-3">
-                <Target className="w-6 h-6 text-green-600" />
-              </div>
-              <div className="text-3xl font-bold text-green-700 mb-1">
-                {milestones.filter(m => m.status === 'completed').length}
-              </div>
-              <div className="text-sm text-green-600 font-medium">
-                Hitos Completados
-              </div>
-              <div className="text-xs text-green-500 mt-1">
-                Objetivos alcanzados
-              </div>
-            </div>
-
-            <div className="text-center p-6 bg-blue-50 rounded-lg border border-blue-200">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-blue-100 mb-3">
-                <Clock className="w-6 h-6 text-blue-600" />
-              </div>
-              <div className="text-3xl font-bold text-blue-700 mb-1">
-                {milestones.filter(m => m.status === 'in-progress').length}
-              </div>
-              <div className="text-sm text-blue-600 font-medium">
-                Hitos En Progreso
-              </div>
-              <div className="text-xs text-blue-500 mt-1">
-                En desarrollo
-              </div>
-            </div>
-
-            <div className="text-center p-6 bg-orange-50 rounded-lg border border-orange-200">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-orange-100 mb-3">
-                <Clock className="w-6 h-6 text-orange-600" />
-              </div>
-              <div className="text-3xl font-bold text-orange-700 mb-1">
-                {milestones.filter(m => m.status === 'planning').length}
-              </div>
-              <div className="text-sm text-orange-600 font-medium">
-                Hitos Pendientes
-              </div>
-              <div className="text-xs text-orange-500 mt-1">
-                Por iniciar
-              </div>
-            </div>
-          </div>
-
-          {/* Lista de Hitos */}
-          <div className="space-y-3">
-            <h4 className="font-medium text-gray-900 mb-3">Detalle de Hitos del Proyecto</h4>
-            {milestones.map((milestone) => (
-              <div key={milestone.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-3 h-3 rounded-full ${
-                      milestone.status === 'completed' ? 'bg-green-500' : 
-                      milestone.status === 'in-progress' ? 'bg-blue-500' : 'bg-gray-400'
-                    }`}></div>
-                    <h5 className="font-medium text-gray-900">{milestone.title}</h5>
-                  </div>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    milestone.status === 'completed' ? 'bg-green-100 text-green-800' :
-                    milestone.status === 'in-progress' ? 'bg-blue-100 text-blue-800' :
-                    'bg-gray-100 text-gray-800'
-                  }`}>
-                    {milestone.status === 'completed' ? 'Completado' :
-                     milestone.status === 'in-progress' ? 'En Progreso' : 'Pendiente'}
-                  </span>
-                </div>
-                
-                {milestone.description && (
-                  <p className="text-sm text-gray-600 mb-2 ml-6">{milestone.description}</p>
-                )}
-                
-                {milestone.story_id && (
-                  <div className="ml-6 mb-2">
-                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 rounded-full text-xs">
-                      📖 Historia: {stories.find(s => s.id == milestone.story_id)?.title || 'Historia no encontrada'}
-                    </span>
-                  </div>
-                )}
-                
-                <div className="flex items-center justify-between text-xs text-gray-500 ml-6">
-                  <div className="flex items-center gap-3">
-                    <span>📅 {new Date(milestone.due_date).toLocaleDateString()}</span>
-                    {milestone.region && (
-                      <span>🌍 {milestone.region}</span>
-                    )}
-                  </div>
-                  <span className={`${
-                    milestone.priority === 'high' ? 'text-red-600' :
-                    milestone.priority === 'medium' ? 'text-yellow-600' : 'text-green-600'
-                  }`}>
-                    ● {milestone.priority === 'high' ? 'Alta' : milestone.priority === 'medium' ? 'Media' : 'Baja'}
-                  </span>
-                </div>
-              </div>
-            ))}
-            {milestones.length === 0 && (
-              <div className="text-center py-6 text-gray-500">
-                <Target className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-                <p className="text-sm">No hay hitos definidos</p>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </>
+    </div>
   )
 }
 
