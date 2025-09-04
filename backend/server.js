@@ -71,3 +71,12 @@ app.listen(PORT, () => {
   console.log(`🚀 EMx Dashboard API running on port ${PORT}`)
   console.log(`📊 Health check: http://localhost:${PORT}/api/health`)
 })
+
+// Health check endpoint para ALB
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'healthy', 
+    timestamp: new Date().toISOString(),
+    service: 'emx-dashboard-backend'
+  });
+});
