@@ -1,57 +1,120 @@
-const API_BASE_URL = '/api';
+const API_BASE_URL = '/api'
+
+const request = async (url: string, options: RequestInit = {}) => {
+  const response = await fetch(url, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers
+    },
+    ...options
+  })
+  
+  if (!response.ok) {
+    throw new Error()
+  }
+  
+  return response
+}
 
 export const api = {
   // Tasks
-  getTasks: () => fetch(`${API_BASE_URL}/tasks`).then(res => res.json()),
-  createTask: (task: any) => fetch(`${API_BASE_URL}/tasks`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(task)
-  }).then(res => res.json()),
-  updateTask: (id: number, task: any) => fetch(`${API_BASE_URL}/tasks/${id}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(task)
-  }).then(res => res.json()),
-  deleteTask: (id: number) => fetch(`${API_BASE_URL}/tasks/${id}`, {
-    method: 'DELETE'
-  }),
+  getTasks: async () => {
+    const response = await request()
+    return response.json()
+  },
+  
+  createTask: async (task: any) => {
+    const response = await request(, {
+      method: 'POST',
+      body: JSON.stringify(task)
+    })
+    return response.json()
+  },
+  
+  updateTask: async (id: number, task: any) => {
+    const response = await request(, {
+      method: 'PUT',
+      body: JSON.stringify(task)
+    })
+    return response.json()
+  },
+  
+  deleteTask: async (id: number) => {
+    return request(, {
+      method: 'DELETE'
+    })
+  },
 
   // Stories
-  getStories: () => fetch(`${API_BASE_URL}/stories`).then(res => res.json()),
-  createStory: (story: any) => fetch(`${API_BASE_URL}/stories`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(story)
-  }).then(res => res.json()),
-  updateStory: (id: number, story: any) => fetch(`${API_BASE_URL}/stories/${id}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(story)
-  }).then(res => res.json()),
-  deleteStory: (id: number) => fetch(`${API_BASE_URL}/stories/${id}`, {
-    method: 'DELETE'
-  }),
+  getStories: async () => {
+    const response = await request()
+    return response.json()
+  },
+  
+  createStory: async (story: any) => {
+    const response = await request(, {
+      method: 'POST',
+      body: JSON.stringify(story)
+    })
+    return response.json()
+  },
+  
+  updateStory: async (id: number, story: any) => {
+    const response = await request(, {
+      method: 'PUT',
+      body: JSON.stringify(story)
+    })
+    return response.json()
+  },
+  
+  deleteStory: async (id: number) => {
+    return request(, {
+      method: 'DELETE'
+    })
+  },
 
   // Milestones
-  getMilestones: () => fetch(`${API_BASE_URL}/milestones`).then(res => res.json()),
-  createMilestone: (milestone: any) => fetch(`${API_BASE_URL}/milestones`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(milestone)
-  }).then(res => res.json()),
-  updateMilestone: (id: number, milestone: any) => fetch(`${API_BASE_URL}/milestones/${id}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(milestone)
-  }).then(res => res.json()),
-  deleteMilestone: (id: number) => fetch(`${API_BASE_URL}/milestones/${id}`, {
-    method: 'DELETE'
-  }),
+  getMilestones: async () => {
+    const response = await request()
+    return response.json()
+  },
+  
+  createMilestone: async (milestone: any) => {
+    const response = await request(, {
+      method: 'POST',
+      body: JSON.stringify(milestone)
+    })
+    return response.json()
+  },
+  
+  updateMilestone: async (id: number, milestone: any) => {
+    const response = await request(, {
+      method: 'PUT',
+      body: JSON.stringify(milestone)
+    })
+    return response.json()
+  },
+  
+  deleteMilestone: async (id: number) => {
+    return request(, {
+      method: 'DELETE'
+    })
+  },
+
+  // Dashboard
+  getDashboardData: async () => {
+    const response = await request()
+    return response.json()
+  },
 
   // Users
-  getUsers: () => fetch(`${API_BASE_URL}/users`).then(res => res.json()),
-  getCurrentUser: () => fetch(`${API_BASE_URL}/users/current`).then(res => res.json())
-};
-
-export default api;
+  getUsers: async () => {
+    const response = await request()
+    return response.json()
+  },
+  
+  getCurrentUser: async () => {
+    const response = await request()
+    return response.json()
+  }
+}

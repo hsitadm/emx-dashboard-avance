@@ -19,9 +19,12 @@ function getKey(header, callback) {
 export const cognitoAuth = (req, res, next) => {
   const token = req.headers.authorization?.replace('Bearer ', '')
   
+  // BLOQUEAR requests sin token
   if (!token) {
-    req.user = null
-    return next()
+    return res.status(401).json({ 
+      error: 'Token de autenticación requerido',
+      message: 'Debes estar autenticado para acceder a esta API'
+    })
   }
 
   jwt.verify(token, getKey, {
@@ -31,16 +34,21 @@ export const cognitoAuth = (req, res, next) => {
   }, (err, decoded) => {
     if (err) {
       console.error('JWT verification error:', err.message)
-      req.user = null
-    } else {
-      req.user = {
-        id: decoded.sub,
-        email: decoded.email,
-        name: decoded.name,
-        role: decoded['custom:role'] || 'viewer',
-        region: decoded['custom:region'] || 'TODAS'
-      }
+      return res.status(401).json({ 
+        error: 'Token inválido',
+        message: 'El token de autenticación no es válido'
+      })
     }
+    
+    // Usuario autenticado correctamente
+    req.user = {
+      id: decoded.sub,
+      email: decoded.email,
+      name: decoded.name,
+      role: decoded['custom:role'] || 'viewer',
+      region: decoded['custom:region'] || 'TODAS'
+    }
+    
     next()
   })
 }

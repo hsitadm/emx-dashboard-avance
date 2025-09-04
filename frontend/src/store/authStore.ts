@@ -35,15 +35,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       
       if (result.nextStep?.signInStep === 'CONFIRM_SIGN_IN_WITH_NEW_PASSWORD_REQUIRED') {
         set({ needsPasswordChange: true })
-        throw new Error('NEW_PASSWORD_REQUIRED')
+        return
       }
       
       await get().checkCurrentUser()
     } catch (error: any) {
       console.error('Login error:', error)
-      if (error.name === 'NotAuthorizedException') {
-        throw new Error('Credenciales inválidas')
-      }
       throw error
     }
   },
@@ -52,20 +49,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       await confirmSignIn({ challengeResponse: newPassword })
       set({ needsPasswordChange: false })
-      setTimeout(() => {
-        get().checkCurrentUser()
-      }, 1000)
+      await get().checkCurrentUser()
     } catch (error: any) {
       console.error('Change password error:', error)
       throw error
     }
   },
 
-
   checkCurrentUser: async () => {
     try {
       const currentUser = await getCurrentUser()
       const attributes = await fetchUserAttributes()
+      
       
       const user: User = {
         id: currentUser.userId,
@@ -74,6 +69,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         role: attributes['custom:role'] as any || 'viewer',
         region: attributes['custom:region'] || 'TODAS'
       }
+      
       
       set({ user, isAuthenticated: true, loading: false })
     } catch (error) {
@@ -87,9 +83,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ 
         user: null, 
         isAuthenticated: false, 
+        loading: false,
         needsPasswordChange: false 
       })
-    } catch (error) {
+    } catch (error: any) {
       console.error('Logout error:', error)
     }
   },
@@ -108,14 +105,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const { user } = get()
     if (!user) return false
     
-    // Admin puede ver todo
     if (user.role === 'admin') return true
     
-    // Viewer solo puede ver: resumen, analisis, calendario
-    if (user.role === 'viewer') {
-      return ['overview', 'analytics', 'calendar'].includes(tab)
-    }
-    
-    return false
+    // Viewer solo puede ver estos tabs
+    const viewerTabs = ["dashboard", "analytics", "calendar"]
+    return viewerTabs.includes(tab)
   }
 }))

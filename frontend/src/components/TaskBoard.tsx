@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react'
 import { Plus, MessageCircle, User, Calendar, ArrowRight, ArrowLeft, Edit, Trash2, BookOpen } from 'lucide-react'
 import { useStore } from '../store/useStore'
+import { useAuthStore } from '../store/authStore'
 import TaskComments from './TaskComments'
 import TaskModal from './TaskModal'
 import apiService from '../services/api.js'
 
 const TaskBoard = () => {
   const { tasks, loadTasks, updateTask, addTask } = useStore()
+const { canEdit } = useAuthStore()
   const [commentsOpen, setCommentsOpen] = useState<string | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingTask, setEditingTask] = useState<any>(null)
@@ -109,7 +111,7 @@ const TaskBoard = () => {
         <h2 className="text-xl font-semibold text-gray-900">Gestión de Tareas EMx</h2>
         <button 
           onClick={handleNewTask}
-          className="btn-primary flex items-center gap-2"
+          className="btn-primary flex items-center gap-2" disabled={!canEdit()}
         >
           <Plus size={16} />
           Nueva Tarea
