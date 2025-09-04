@@ -5,7 +5,7 @@ interface User {
   id: string
   name: string
   email: string
-  role: 'admin' | 'editor' | 'viewer'
+  role: 'admin' | 'viewer'
   region: string
 }
 
@@ -52,7 +52,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       await confirmSignIn({ challengeResponse: newPassword })
       set({ needsPasswordChange: false })
-      // Después del cambio de password, verificar usuario actual
       setTimeout(() => {
         get().checkCurrentUser()
       }, 1000)
@@ -61,6 +60,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       throw error
     }
   },
+
 
   checkCurrentUser: async () => {
     try {
@@ -96,7 +96,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   canEdit: () => {
     const { user } = get()
-    return user ? ['admin', 'editor'].includes(user.role) : false
+    return user?.role === 'admin'
   },
 
   canAdmin: () => {
@@ -106,6 +106,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   canView: (tab: string) => {
     const { user } = get()
-    return user ? true : false // Todos los usuarios autenticados pueden ver
+    if (!user) return false
+    
+    // Admin puede ver todo
+    if (user.role === 'admin') return true
+    
+    // Viewer solo puede ver: resumen, analisis, calendario
+    if (user.role === 'viewer') {
+      return ['overview', 'analytics', 'calendar'].includes(tab)
+    }
+    
+    return false
   }
 }))
