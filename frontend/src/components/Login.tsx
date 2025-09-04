@@ -1,78 +1,163 @@
 import React, { useState } from 'react'
-import { LogIn, User, Shield, Eye } from 'lucide-react'
+import { Shield, LogIn, Key, Eye, EyeOff } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
 
 const Login: React.FC = () => {
-  const [email, setEmail] = useState("admin@emx.com")
-  const [password, setPassword] = useState("admin123")
+  const [email, setEmail] = useState('hsandoval@escala24x7.com')
+  const [password, setPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const { login, loginAsViewer } = useAuthStore()
+  const [showPassword, setShowPassword] = useState(false)
+  
+  const { login, changePassword, needsPasswordChange } = useAuthStore()
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError('')
 
     try {
-      await login(email)
-    } catch (error) {
-      setError('Error en login. Verifica tu email.')
+      await login(email, password)
+    } catch (error: any) {
+      if (error.message === 'NEW_PASSWORD_REQUIRED') {
+        setError('Debes cambiar tu password temporal')
+      } else {
+        setError(error.message || 'Error en login')
+      }
     } finally {
       setLoading(false)
     }
   }
 
-  const handleViewerAccess = () => {
-    loginAsViewer()
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (newPassword !== confirmPassword) {
+      setError('Las contraseñas no coinciden')
+      return
+    }
+
+    if (newPassword.length < 8) {
+      setError('La contraseña debe tener al menos 8 caracteres')
+      return
+    }
+
+    setLoading(true)
+    setError('')
+
+    try {
+      await changePassword(newPassword)
+    } catch (error: any) {
+      setError(error.message || 'Error al cambiar contraseña')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (needsPasswordChange) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-100 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
+          <div className="text-center mb-8">
+            <Key className="mx-auto w-16 h-16 text-orange-600 mb-4" />
+            <h1 className="text-2xl font-bold text-gray-900">Cambiar Contraseña</h1>
+            <p className="text-gray-600 mt-2">Debes cambiar tu contraseña temporal</p>
+          </div>
+
+          <form onSubmit={handleChangePassword} className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Nueva Contraseña
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="Mínimo 8 caracteres"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Confirmar Contraseña
+              </label>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                placeholder="Repetir contraseña"
+                required
+              />
+            </div>
+
+            {error && (
+              <div className="text-red-600 text-sm bg-red-50 p-3 rounded-md">
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-orange-600 text-white py-2 px-4 rounded-md hover:bg-orange-700 disabled:opacity-50 flex items-center justify-center space-x-2"
+            >
+              <Key className="w-4 h-4" />
+              <span>{loading ? 'Cambiando...' : 'Cambiar Contraseña'}</span>
+            </button>
+          </form>
+        </div>
+      </div>
+    )
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-xl p-8">
+      <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
         <div className="text-center mb-8">
-          <div className="mx-auto w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mb-4">
-            <LogIn className="w-8 h-8 text-white" />
-          </div>
+          <Shield className="mx-auto w-16 h-16 text-blue-600 mb-4" />
           <h1 className="text-2xl font-bold text-gray-900">EMx Dashboard</h1>
-          <p className="text-gray-600 mt-2">Accede al dashboard de transición</p>
+          <p className="text-gray-600 mt-2">AWS Cognito Authentication</p>
         </div>
 
-        {/* Acceso directo como Viewer */}
-        <div className="mb-6">
-          <button
-            onClick={handleViewerAccess}
-            className="w-full bg-green-600 text-white py-3 px-4 rounded-md hover:bg-green-700 transition-colors flex items-center justify-center space-x-2"
-          >
-            <Eye className="w-5 h-5" />
-            <span>Acceder como Visualizador</span>
-          </button>
-          <p className="text-xs text-gray-500 mt-2 text-center">
-            Acceso de solo lectura - No requiere credenciales
-          </p>
-        </div>
-
-        <div className="relative mb-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-300" />
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white text-gray-500">O ingresa como administrador</span>
-          </div>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleLogin} className="space-y-6">
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-              Email de Administrador
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Email
             </label>
             <input
               type="email"
-              id="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="admin@emx.com"
+              placeholder="hsandoval@escala24x7.com"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Contraseña
+            </label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="TempPass123!"
               required
             />
           </div>
@@ -86,26 +171,23 @@ const Login: React.FC = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center space-x-2"
+            className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center space-x-2"
           >
-            <Shield className="w-4 h-4" />
-            <span>{loading ? 'Ingresando...' : 'Ingresar como Admin'}</span>
+            <LogIn className="w-4 h-4" />
+            <span>{loading ? 'Conectando con Cognito...' : 'Ingresar con Cognito'}</span>
           </button>
         </form>
 
         <div className="mt-6 pt-6 border-t border-gray-200">
-          <p className="text-sm text-gray-600 mb-3">Usuario de prueba:</p>
-          <button
-            onClick={() => setEmail('admin@emx.com')}
-            className="w-full text-left p-3 bg-gray-50 hover:bg-gray-100 rounded-md transition-colors flex items-center space-x-3"
-          >
-            <Shield className="w-4 h-4 text-gray-600" />
-            <div>
-              <div className="font-medium text-sm">Administrador</div>
-              <div className="text-xs text-gray-500">Acceso completo al sistema</div>
+          <p className="text-sm text-gray-600 mb-3">Credenciales Cognito:</p>
+          <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded-md">
+            <div><strong>User Pool:</strong> us-east-1_A7TjCD2od</div>
+            <div><strong>Email:</strong> hsandoval@escala24x7.com</div>
+            <div><strong>Password:</strong> TempPass123!</div>
+            <div className="text-orange-600 mt-2">
+              <strong>Nota:</strong> Cambio de password requerido en primer login
             </div>
-            <div className="ml-auto text-xs text-gray-400">admin@emx.com</div>
-          </button>
+          </div>
         </div>
       </div>
     </div>
