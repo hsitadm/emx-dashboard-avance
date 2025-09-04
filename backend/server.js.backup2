@@ -1,0 +1,161 @@
+const express = require('express');
+const cors = require('cors');
+const helmet = require('helmet');
+const cookieParser = require('cookie-parser');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const rateLimit = require('express-rate-limit');
+const { body, validationResult } = require('express-validator');
+const Database = require('better-sqlite3');
+
+const app = express();
+const PORT = process.env.PORT || 3001;
+const JWT_SECRET = 'emx-dashboard-super-secret-key-2025';
+
+// Database connection
+const db = new Database('./database.sqlite');
+
+// Security middleware
+app.use(helmet({ contentSecurityPolicy: false }));
+app.use(cors({
+  origin: ['https://emx-dashboard.tiendavirtualdemo.com', 'http://localhost:5173'],
+  credentials: true
+}));
+app.use(express.json({ limit: '10mb' }));
+app.use(cookieParser());
+
+// Rate limiting for login
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { error: 'Demasiados intentos de login' }
+});
+
+// Auth middleware
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ error: 'Token requerido' });
+  }
+
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (err) return res.status(403).json({ error: 'Token inválido' });
+    req.user = user;
+    next();
+  });
+};
+
+// Prepared statements
+const getUserByEmail = db.prepare('SELECT * FROM users WHERE email = ? AND is_active = 1');
+const updateUserLogin = db.prepare('UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?');
+
+// AUTH ROUTES
+app.post('/api/auth/login', loginLimiter, [
+  body('email').isEmail().normalizeEmail(),
+  body('password').isLength({ min: 6 })
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ error: 'Email y contraseña requeridos' });
+    }
+
+    const { email, password } = req.body;
+    const user = getUserByEmail.get(email);
+
+    if (!user || !user.password_hash) {
+      return res.status(401).json({ error: 'Credenciales inválidas' });
+    }
+
+    const isValid = await bcrypt.compare(password, user.password_hash);
+    if (!isValid) {
+      return res.status(401).json({ error: 'Credenciales inválidas' });
+    }
+
+    updateUserLogin.run(user.id);
+
+    const token = jwt.sign({
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      region: user.region,
+      name: user.name
+    }, JWT_SECRET, { expiresIn: '8h' });
+
+    res.json({
+      success: true,
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        region: user.region
+      }
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Error interno' });
+  }
+});
+
+app.get('/api/auth/me', authenticateToken, (req, res) => {
+  res.json({
+    id: req.user.id,
+    name: req.user.name,
+    email: req.user.email,
+    role: req.user.role,
+    region: req.user.region
+  });
+});
+
+app.post('/api/auth/logout', authenticateToken, (req, res) => {
+  res.json({ success: true, message: 'Logout exitoso' });
+});
+
+// Health check (no auth required)
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    service: 'EMx Dashboard API'
+  });
+});
+
+// Import existing routes with try-catch
+let tasksRoutes, storiesRoutes, milestonesRoutes, usersRoutes;
+
+try {
+  tasksRoutes = require('./routes/tasks');
+  app.use('/api/tasks', authenticateToken, tasksRoutes);
+} catch (e) {
+  console.log('Tasks routes not loaded');
+}
+
+try {
+  storiesRoutes = require('./routes/stories');
+  app.use('/api/stories', authenticateToken, storiesRoutes);
+} catch (e) {
+  console.log('Stories routes not loaded');
+}
+
+try {
+  milestonesRoutes = require('./routes/milestones');
+  app.use('/api/milestones', authenticateToken, milestonesRoutes);
+} catch (e) {
+  console.log('Milestones routes not loaded');
+}
+
+try {
+  usersRoutes = require('./routes/users');
+  app.use('/api/users', authenticateToken, usersRoutes);
+} catch (e) {
+  console.log('Users routes not loaded');
+}
+
+app.listen(PORT, () => {
+  console.log('EMx Dashboard API running on port ' + PORT);
+  console.log('Authentication enabled');
+});
